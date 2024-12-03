@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>EoaServer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EoaServer.Domain\EoaServer.Domain.csproj" />
+    <ProjectReference Include="..\EoaServer.Application.Contracts\EoaServer.Application.Contracts.csproj" />
+    <ProjectReference Include="..\EoaServer.Grains\EoaServer.Grains.csproj" />
+    <ProjectReference Include="..\EoaServer.HttpApi\EoaServer.HttpApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Account.Application" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.DistributedLocking" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.EventBus.RabbitMQ" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.Identity.Application" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.PermissionManagement.Application" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.TenantManagement.Application" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="8.2.0" />
+    <PackageReference Include="Volo.Abp.SettingManagement.Application" Version="8.2.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+    <PackageReference Include="Com.Ctrip.Framework.Apollo.Configuration" Version="2.10.1" />
+    <PackageReference Include="Volo.Abp.AspNetCore.Serilog" Version="8.2.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
+    <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
+    <PackageReference Include="Serilog.Sinks.RollingFile" Version="3.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="Microsoft.AspNetCore.SignalR.Core">
+      <HintPath>..\..\..\..\..\..\usr\local\share\dotnet\shared\Microsoft.AspNetCore.App\7.0.0\Microsoft.AspNetCore.SignalR.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
