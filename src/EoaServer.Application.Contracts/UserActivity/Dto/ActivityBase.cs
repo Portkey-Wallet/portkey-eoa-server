@@ -4,6 +4,7 @@ namespace EoaServer.UserActivity.Dtos;
 
 public class ActivityBase
 {
+    public string ChainId { get; set; }
     public string TransactionId { get; set; }
     public string BlockHash { get; set; }
     public string TransactionType { get; set; }

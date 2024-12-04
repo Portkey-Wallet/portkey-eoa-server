@@ -15,4 +15,10 @@ public static class CommonConstant
     public const string TDVVChainId = "tDVV";
     public const string TDVWChainId = "tDVW";
     public static List<string> ChainIds = new List<string> { MainChainId, TDVWChainId, TDVVChainId };
+
+    public const string AelfScanUserTokenAssetsApi = "api/app/address/tokens";
+    public const string AelfScanUserNFTAssetsApi = "api/app/address/nft-assets";
+    public const string AelfScanUserTransationsApi = "api/app/blockchain/transactions";
+    public const string AelfScanTransactionDetailApi = "api/app/blockchain/transactionDetail";
+    public const string AelfScanTokenInfoApi = "api/app/token/info";
 }

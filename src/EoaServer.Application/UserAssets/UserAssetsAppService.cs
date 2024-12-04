@@ -11,6 +11,11 @@ namespace EoaServer.UserAssets;
 [DisableAuditing]
 public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
 {
+    public UserAssetsAppService()
+    {
+        
+    }
+    
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
     {
         //todo

@@ -1,4 +1,5 @@
-﻿using EoaServer.Redis;
+﻿using EoaServer.Options;
+using EoaServer.Redis;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Account;
 using Volo.Abp.AutoMapper;
@@ -33,6 +34,10 @@ public class EoaServerApplicationModule : AbpModule
         context.Services.AddSingleton<RedisClient>();
         
         var configuration = context.Services.GetConfiguration();
-        //Configure<ScheduledTasksOptions>(configuration.GetSection("ScheduledTasks"));
+        
+        Configure<ChainOptions>(configuration.GetSection("Chains"));
+        Configure<TokenSpenderOptions>(configuration.GetSection("TokenSpender"));
+        Configure<ActivityOptions>(configuration.GetSection("ActivityOptions"));
+        Configure<AElfScanOptions>(configuration.GetSection("AElfScanOptions"));
     }
 }

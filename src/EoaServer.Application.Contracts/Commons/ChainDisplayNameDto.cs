@@ -1,4 +1,4 @@
-namespace EoaServer.Commons.Etos;
+namespace EoaServer.Commons;
 
 public class ChainDisplayNameDto
 {

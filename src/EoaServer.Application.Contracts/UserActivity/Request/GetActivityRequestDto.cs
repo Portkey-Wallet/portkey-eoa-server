@@ -9,7 +9,7 @@ namespace EoaServer.UserActivity.Dto;
 public class GetActivityRequestDto : IValidatableObject
 {
     [Required] public string TransactionId { get; set; }
-    [Required] public string BlockHash { get; set; }
+    [Required] public string ChainId { get; set; }
     public string ActivityType { get; set; }
 
     public List<string> Addresses { get; set; }
@@ -23,9 +23,9 @@ public class GetActivityRequestDto : IValidatableObject
             yield return new ValidationResult("Invalid TransactionId input.");
         }
 
-        if (string.IsNullOrEmpty(BlockHash))
+        if (string.IsNullOrEmpty(ChainId))
         {
-            yield return new ValidationResult("Invalid BlockHash input.");
+            yield return new ValidationResult("Invalid ChainId input.");
         }
 
         if ((AddressInfos.IsNullOrEmpty() ||

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
-using EoaServer.Commons.Etos;
-using EoaServer.Commons.Etos;
+using EoaServer.Commons;
 
 namespace EoaServer.UserAssets.Dtos;
 
