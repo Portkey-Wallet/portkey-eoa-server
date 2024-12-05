@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 
@@ -40,7 +41,14 @@ public class HttpClientProvider : IHttpClientProvider, ISingletonDependency
         var response = await client.GetStringAsync(url);
         return JsonConvert.DeserializeObject<T>(response);
     }
-
+    
+    public async Task<T> GetDataAsync<T>(string url)
+    {
+        var response = await _httpClientFactory.CreateClient().GetStringAsync(url);
+        var json = JObject.Parse(response);
+        return json["data"].ToObject<T>();
+    }
+    
     public async Task<T> GetAsync<T>(string url, IDictionary<string, string> headers)
     {
         if (headers == null)

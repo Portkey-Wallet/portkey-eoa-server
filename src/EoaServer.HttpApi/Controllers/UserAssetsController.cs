@@ -3,9 +3,6 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
-using EoaServer.UserAssets;
-using EoaServer.UserAssets.Dtos;
-using EoaServer.Commons;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,8 +14,8 @@ namespace EoaServer.Controllers;
 [Area("app")]
 [ControllerName("UserAssets")]
 [Route("api/app/user/assets")]
-[Authorize]
-public class UserAssetsController
+// [Authorize]
+public class UserAssetsController : EoaServerBaseController
 {
     private readonly IUserAssetsAppService _userAssetsAppService;
     private readonly IHttpContextAccessor _httpContextAccessor;

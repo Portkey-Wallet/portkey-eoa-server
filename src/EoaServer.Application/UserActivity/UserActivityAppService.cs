@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using EoaServer.Common;
 using EoaServer.Commons;
@@ -11,8 +12,11 @@ using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson.IO;
 using Volo.Abp;
 using Volo.Abp.Auditing;
+using Newtonsoft.Json;
+using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace EoaServer.UserActivity;
 
@@ -45,33 +49,73 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
     {
         var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
-        var requestParams = new Dictionary<string, string>()
-        {
-            {"TransactionId", request.TransactionId},
-            {"ChainId", request.ChainId}
-        };
-        var txnDto = await _httpClientProvider.GetAsync<TransactionDetailResponseDto>(url, requestParams);
+        var requestUrl = $"{url}?TransactionId={request.TransactionId}&ChainId={request.ChainId}";
+        
+        var txnDto = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
 
         if (txnDto.List.Count < 1)
         {
             return null;
         }
 
-        var tokenMap = await GetTokenMapAsync(txnDto);
+        var tokenMap = await GetTokenMapAsync(txnDto.List);
         return await ConvertDtoAsync(request.ChainId, txnDto.List[0], tokenMap);
     }
     
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request)
     {
-        //todo
-        //foreach txn list txnId + chainIds[0] to get txn detail
-        return null;
+        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTransactionsApi;
+        var requestUrl = $"{url}?address={request.Address}&skipCount={request.SkipCount}&maxResultCount={request.MaxResultCount}";
+        
+        var txns = await _httpClientProvider.GetDataAsync<TransactionsResponseDto>(requestUrl);
+        var hasNextPage = request.SkipCount + txns.Transactions.Count < txns.Total;
+        
+        var txnChainMap = new Dictionary<string, string>();
+        var mapTasks = txns.Transactions.Select(async txn =>
+        {
+            if (txn.ChainIds.Count < 1)
+            {
+                return null;
+            }
+            
+            txnChainMap[txn.TransactionId] = txn.ChainIds[0];
+            
+            var detailUrl = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
+            var requestUrl = $"{detailUrl}?TransactionId={txn.TransactionId}&ChainId={txn.ChainIds[0]}";
+            
+            var txnDetail = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
+            return txnDetail;
+        }).ToList();
+
+        var txnDetails = new List<TransactionDetailDto>();
+        var txnDetailResults = await Task.WhenAll(mapTasks);
+        foreach (var txnDetailResult in txnDetailResults)
+        {
+            if (txnDetailResult != null)
+            {
+                txnDetails.AddRange(txnDetailResult.List);
+            }
+        }
+        
+        var tokenMap = await GetTokenMapAsync(txnDetails);
+        var activityDtos = new List<GetActivityDto>();
+        foreach (var txnDetail in txnDetails)
+        {
+            activityDtos.Add(await ConvertDtoAsync(txnChainMap[txnDetail.TransactionId], txnDetail, tokenMap));
+        }
+        
+        return new GetActivitiesDto()
+        {
+            Data = activityDtos,
+            TotalRecordCount = txns.Total,
+            HasNextPage = hasNextPage
+        };
     }
 
-    private async Task<Dictionary<string, IndexerTokenInfoDto>> GetTokenMapAsync(TransactionDetailResponseDto txnResponseDto)
+    private async Task<Dictionary<string, IndexerTokenInfoDto>> GetTokenMapAsync(List<TransactionDetailDto> txnDetails)
     {
         var result = new Dictionary<string, IndexerTokenInfoDto>();
-        foreach (var transactionDetail in txnResponseDto.List)
+        foreach (var transactionDetail in txnDetails)
         {
             foreach (var tokenTransferred in transactionDetail.TokenTransferreds)
             {
@@ -95,21 +139,19 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         var mapTasks = result.Select(async token =>
         {
-            var requestParams = new Dictionary<string, string>()
-            {
-                { "Symbol", token.Key },
-                { "ChainId", tokenChain }
-            };
-            var tokenInfo = await _httpClientProvider.GetAsync<IndexerTokenInfoDto>(url, requestParams);
+            var requestUrl = $"{url}?Symbol={token.Key}&ChainId={tokenChain}";
+            var tokenInfo = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
             return tokenInfo;
         }).ToList();
 
         var tokenList = await Task.WhenAll(mapTasks);
         foreach (var tokenInfo in tokenList)
         {
-            result[tokenInfo.Symbol] = tokenInfo;
+            if (tokenInfo != null)
+            {
+                result[tokenInfo.Symbol] = tokenInfo;
+            }
         }
-        
         return result;
     }
     
@@ -187,7 +229,6 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             Status = dto.Status.ToString().ToUpper(),
             TransactionName = dto.Method,
             TransactionType = dto.Method,
-            ListIcon = null, //todo
             Timestamp = dto.Timestamp.ToString(),
             BlockHash = null, // todo
             FromAddress = dto.From.Address,
@@ -216,7 +257,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         Symbol = tokenTransferred.Symbol,
                         Amount = tokenTransferred.Amount.ToString(),
                         Icon = tokenTransferred.ImageUrl,
-                        Decimals = tokenMap[tokenTransferred.Symbol].Decimals.ToString()
+                        Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString()
                     });
                 }
                 else
@@ -235,7 +276,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         Symbol = tokenTransferred.Symbol,
                         Amount = tokenTransferred.Amount.ToString(),
                         Icon = tokenTransferred.ImageUrl,
-                        Decimals = tokenMap[tokenTransferred.Symbol].Decimals.ToString()
+                        Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString()
                     });
                 }
                 else
@@ -259,21 +300,23 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         isSeed = true;
                         seedType = (int)SeedType.FT;
                     }
-                    
+
+                    var nftInfo = new NftDetail()
+                    {
+                        ImageUrl = nftsTransferred.ImageUrl,
+                        Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
+                        NftId = nftsTransferred.Symbol.Split("-").Last(),
+                        IsSeed = isSeed,
+                        SeedType = seedType
+                    };
                     activityDto.Operations.Add(new OperationItemInfo()
                     {
                         IsReceived = false,
                         Symbol = nftsTransferred.Symbol,
                         Amount = nftsTransferred.Amount.ToString(),
-                        NftInfo = new NftDetail()
-                        {
-                            ImageUrl = nftsTransferred.ImageUrl,
-                            Alias = tokenMap[nftsTransferred.Symbol].TokenName,
-                            NftId = nftsTransferred.Symbol.Split("-").Last(),
-                            IsSeed = isSeed,
-                            SeedType = seedType
-                        }
+                        NftInfo = nftInfo
                     });
+                    activityDto.NftInfo = nftInfo;
                 }
                 else
                 {
@@ -293,20 +336,22 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         seedType = (int)SeedType.FT;
                     }
 
+                    var nftInfo = new NftDetail()
+                    {
+                        ImageUrl = nftsTransferred.ImageUrl,
+                        Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
+                        NftId = nftsTransferred.Symbol.Split("-").Last(),
+                        IsSeed = isSeed,
+                        SeedType = seedType
+                    };
                     activityDto.Operations.Add(new OperationItemInfo()
                     {
                         IsReceived = true,
                         Symbol = nftsTransferred.Symbol,
                         Amount = nftsTransferred.Amount.ToString(),
-                        NftInfo = new NftDetail()
-                        {
-                            ImageUrl = nftsTransferred.ImageUrl,
-                            Alias = tokenMap[nftsTransferred.Symbol].TokenName,
-                            NftId = nftsTransferred.Symbol.Split("-").Last(),
-                            IsSeed = isSeed,
-                            SeedType = seedType
-                        }
+                        NftInfo = nftInfo
                     });
+                    activityDto.NftInfo = nftInfo;
                 }
                 else
                 {
@@ -314,6 +359,10 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                 }
             }
         }
+
+        activityDto.ListIcon = activityDto.Operations.FirstOrDefault()?.Icon;
+        
+        _logger.LogInformation($"convert transaction: {dto.TransactionId}, from: {JsonConvert.SerializeObject(dto)}, to: {JsonConvert.SerializeObject(activityDto)}");
         
         return activityDto;
     }
