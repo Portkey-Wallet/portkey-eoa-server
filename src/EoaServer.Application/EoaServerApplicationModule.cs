@@ -39,5 +39,8 @@ public class EoaServerApplicationModule : AbpModule
         Configure<TokenSpenderOptions>(configuration.GetSection("TokenSpender"));
         Configure<ActivityOptions>(configuration.GetSection("ActivityOptions"));
         Configure<AElfScanOptions>(configuration.GetSection("AElfScanOptions"));
+        Configure<TokenListOptions>(configuration.GetSection("Tokens"));
+        Configure<TokenInfoOptions>(configuration.GetSection("TokenInfo"));
+        Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfo"));
     }
 }

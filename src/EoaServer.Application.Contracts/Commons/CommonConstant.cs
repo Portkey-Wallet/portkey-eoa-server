@@ -21,4 +21,6 @@ public static class CommonConstant
     public const string AelfScanUserTransactionsApi = "api/app/blockchain/transactions";
     public const string AelfScanTransactionDetailApi = "api/app/blockchain/transactionDetail";
     public const string AelfScanTokenInfoApi = "api/app/token/info";
+    
+    public const string TokenInfoCachePrefix = "TokenInfoCachePrefix";
 }

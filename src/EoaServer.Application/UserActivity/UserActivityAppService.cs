@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EoaServer.Common;
 using EoaServer.Commons;
 using EoaServer.Options;
+using EoaServer.Token;
 using EoaServer.Token.Dto;
 using EoaServer.UserActivity.Dto;
 using EoaServer.UserActivity.Dtos;
@@ -17,6 +18,7 @@ using Volo.Abp;
 using Volo.Abp.Auditing;
 using Newtonsoft.Json;
 using JsonConvert = Newtonsoft.Json.JsonConvert;
+using TokenInfoDto = EoaServer.Token.Dto.TokenInfoDto;
 
 namespace EoaServer.UserActivity;
 
@@ -26,17 +28,19 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
 {
     private readonly ILogger<UserActivityAppService> _logger;
     private readonly IHttpClientProvider _httpClientProvider;
+    private readonly AElfScanOptions _aElfScanOptions;
     private readonly ActivityOptions _activityOptions;
     private readonly TokenSpenderOptions _tokenSpenderOptions;
     private readonly ChainOptions _chainOptions;
-    private readonly AElfScanOptions _aElfScanOptions;
+    private readonly ITokenInfoAppService _tokenInfoAppService;
     
     public UserActivityAppService(ILogger<UserActivityAppService> logger,
         IHttpClientProvider httpClientProvider,
         IOptionsSnapshot<ActivityOptions> activityOptions,
         IOptionsSnapshot<TokenSpenderOptions> tokenSpenderOptions,
         IOptionsSnapshot<ChainOptions> chainOptions,
-        IOptionsSnapshot<AElfScanOptions> aElfScanOptions)
+        IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
+        ITokenInfoAppService tokenInfoAppService)
     {
         _logger = logger;
         _httpClientProvider = httpClientProvider;
@@ -44,6 +48,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         _tokenSpenderOptions = tokenSpenderOptions.Value;
         _chainOptions = chainOptions.Value;
         _aElfScanOptions = aElfScanOptions.Value;
+        _tokenInfoAppService = tokenInfoAppService;
     }
     
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
@@ -112,9 +117,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         };
     }
 
-    private async Task<Dictionary<string, IndexerTokenInfoDto>> GetTokenMapAsync(List<TransactionDetailDto> txnDetails)
+    private async Task<Dictionary<string, TokenInfoDto>> GetTokenMapAsync(List<TransactionDetailDto> txnDetails)
     {
-        var result = new Dictionary<string, IndexerTokenInfoDto>();
+        var result = new Dictionary<string, TokenInfoDto>();
         foreach (var transactionDetail in txnDetails)
         {
             foreach (var tokenTransferred in transactionDetail.TokenTransferreds)
@@ -139,9 +144,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         var mapTasks = result.Select(async token =>
         {
-            var requestUrl = $"{url}?Symbol={token.Key}&ChainId={tokenChain}";
-            var tokenInfo = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
-            return tokenInfo;
+            return await _tokenInfoAppService.GetAsync(token.Key, tokenChain);
         }).ToList();
 
         var tokenList = await Task.WhenAll(mapTasks);
@@ -221,7 +224,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         activityDto.DappIcon = tokenSpender.Icon;
     }
 
-    private async Task<GetActivityDto> ConvertDtoAsync(string chainId, TransactionDetailDto dto, Dictionary<string, IndexerTokenInfoDto> tokenMap)
+    private async Task<GetActivityDto> ConvertDtoAsync(string chainId, TransactionDetailDto dto, Dictionary<string, TokenInfoDto> tokenMap)
     {
         var activityDto = new GetActivityDto
         {
