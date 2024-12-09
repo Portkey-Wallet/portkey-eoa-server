@@ -54,6 +54,14 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
 
         return $"{_assetsInfoOptions.ImageUrlPrefix}{symbol}{_assetsInfoOptions.ImageUrlSuffix}";
     }
+
+    public async Task<IndexerTokenInfoDto> GetIndexerTokenInfoAsync(string chainId, string symbol)
+    {
+        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
+        var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
+        var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
+        return tokenInfoResult;
+    }
     
     public async Task<TokenInfoDto> GetAsync(string chainId, string symbol)
     {

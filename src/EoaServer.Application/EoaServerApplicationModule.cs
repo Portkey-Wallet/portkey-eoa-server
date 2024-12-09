@@ -42,5 +42,8 @@ public class EoaServerApplicationModule : AbpModule
         Configure<TokenListOptions>(configuration.GetSection("Tokens"));
         Configure<TokenInfoOptions>(configuration.GetSection("TokenInfo"));
         Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfo"));
+        Configure<SeedImageOptions>(configuration.GetSection("SeedSymbolImage"));
+        Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
+
     }
 }

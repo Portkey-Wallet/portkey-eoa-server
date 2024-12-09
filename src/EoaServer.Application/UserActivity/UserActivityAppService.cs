@@ -138,7 +138,6 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             }
         }
 
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
         var sideChain = _chainOptions.ChainInfos.FirstOrDefault(t => t.Value.IsMainChain == false);
         var tokenChain = sideChain.Value.ChainId;
         

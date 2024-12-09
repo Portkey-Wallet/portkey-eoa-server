@@ -14,7 +14,7 @@ public class NftCollection : ChainDisplayNameDto
 {
     public string ImageUrl { get; set; }
     public string CollectionName { get; set; }
-    public int ItemCount { get; set; }
+    public long ItemCount { get; set; }
     public string Symbol { get; set; }
     public bool IsSeed { get; set; }
     
