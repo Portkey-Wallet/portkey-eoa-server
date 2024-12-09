@@ -13,6 +13,7 @@ using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -58,7 +59,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         var txnDto = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
 
-        if (txnDto.List.Count < 1)
+        if (txnDto == null || txnDto.List.Count < 1)
         {
             return null;
         }
@@ -69,11 +70,65 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request)
     {
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTransactionsApi;
-        var requestUrl = $"{url}?address={request.Address}&skipCount={request.SkipCount}&maxResultCount={request.MaxResultCount}";
+        var baseUrl = _aElfScanOptions.BaseUrl;
+
+        var transactionsUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransactionsApi}?" +
+                              $"address={request.Address}&" +
+                              $"skipCount=0&" +
+                              $"maxResultCount={request.SkipCount + request.MaxResultCount}";
+
+        var tokenTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?" +
+                                $"tokenType=0&" +
+                                $"address={request.Address}&" +
+                                $"skipCount=0&" +
+                                $"maxResultCount={request.SkipCount + request.MaxResultCount}";
+
+        var nftTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?" +
+                              $"tokenType=1&" +
+                              $"address={request.Address}&" +
+                              $"skipCount=0&" +
+                              $"maxResultCount={request.SkipCount + request.MaxResultCount}";
+
+        var txnsTask = _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl);
+        var tokenTransfersTask = _httpClientProvider.GetDataAsync<GetTransferListResultDto>(tokenTransfersUrl);
+        var nftTransfersTask = _httpClientProvider.GetDataAsync<GetTransferListResultDto>(nftTransfersUrl);
+
+        await Task.WhenAll(txnsTask, tokenTransfersTask, nftTransfersTask);
+
+        var txns = await txnsTask;
+        var tokenTransfers = await tokenTransfersTask;
+        var nftTransfers = await nftTransfersTask;
+
+        foreach (var transfer in tokenTransfers.List)
+        {
+            var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
+            if (txn == null)
+            {
+                txns.Transactions.Add(new TransactionResponseDto
+                {
+                    TransactionId = transfer.TransactionId,
+                    ChainIds = transfer.ChainIds
+                });
+            }
+        }
         
-        var txns = await _httpClientProvider.GetDataAsync<TransactionsResponseDto>(requestUrl);
-        var hasNextPage = request.SkipCount + txns.Transactions.Count < txns.Total;
+        foreach (var transfer in nftTransfers.List)
+        {
+            var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
+            if (txn == null)
+            {
+                txns.Transactions.Add(new TransactionResponseDto
+                {
+                    TransactionId = transfer.TransactionId,
+                    ChainIds = transfer.ChainIds
+                });
+            }
+        }
+        
+        txns.Transactions = txns.Transactions.OrderByDescending(item => item.Timestamp)
+            .Skip(request.SkipCount) 
+            .Take(request.MaxResultCount)
+            .ToList();
         
         var txnChainMap = new Dictionary<string, string>();
         var mapTasks = txns.Transactions.Select(async txn =>
@@ -92,15 +147,10 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             return txnDetail;
         }).ToList();
 
-        var txnDetails = new List<TransactionDetailDto>();
-        var txnDetailResults = await Task.WhenAll(mapTasks);
-        foreach (var txnDetailResult in txnDetailResults)
-        {
-            if (txnDetailResult != null)
-            {
-                txnDetails.AddRange(txnDetailResult.List);
-            }
-        }
+        var txnDetails = (await Task.WhenAll(mapTasks))
+            .Where(result => result != null)
+            .SelectMany(result => result.List) 
+            .ToList();
         
         var tokenMap = await GetTokenMapAsync(txnDetails);
         var activityDtos = new List<GetActivityDto>();
@@ -111,9 +161,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         return new GetActivitiesDto()
         {
-            Data = activityDtos,
-            TotalRecordCount = txns.Total,
-            HasNextPage = hasNextPage
+            Data = activityDtos
         };
     }
 
@@ -236,14 +284,14 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             FromAddress = dto.From.Address,
             ToAddress = dto.To.Address,
             ChainId = chainId,
-            // FromChainId = , //todo
-            // FromChainIcon = ,
-            // FromChainIdUpdated = ,
-            // ToChainId = ,
-            // ToChainIcon = ,
-            // ToChainIdUpdated = ,
+            FromChainId = chainId, 
+            FromChainIcon = ChainDisplayNameHelper.MustGetChainUrl(chainId),
+            FromChainIdUpdated = ChainDisplayNameHelper.MustGetChainDisplayName(chainId),
+            ToChainId = chainId,
+            ToChainIcon = ChainDisplayNameHelper.MustGetChainUrl(chainId),
+            ToChainIdUpdated = ChainDisplayNameHelper.MustGetChainDisplayName(chainId),
         };
-        
+       
         SetDAppInfo(dto.To.Address, activityDto, dto.From.Address, dto.Method);
         
         foreach (var tokenTransferred in dto.TokenTransferreds)
