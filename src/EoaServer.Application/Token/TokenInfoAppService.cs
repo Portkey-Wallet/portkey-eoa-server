@@ -5,6 +5,7 @@ using EoaServer.Commons;
 using EoaServer.Options;
 using EoaServer.Token.Dto;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.Auditing;
@@ -21,18 +22,21 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
     private readonly AElfScanOptions _aElfScanOptions;
     private readonly TokenInfoOptions _tokenInfoOptions;
     private readonly AssetsInfoOptions _assetsInfoOptions;
-    
+    private readonly ILogger<TokenInfoAppService> _logger;
+
     public TokenInfoAppService(IDistributedCache<TokenInfoDto> tokenCache,
         IHttpClientProvider httpClientProvider,
         IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
         IOptionsSnapshot<TokenInfoOptions> tokenInfoOptions,
-        IOptionsSnapshot<AssetsInfoOptions> assetsInfoOptions)
+        IOptionsSnapshot<AssetsInfoOptions> assetsInfoOptions,
+        ILogger<TokenInfoAppService> logger)
     {
         _tokenInfoCache = tokenCache;
         _httpClientProvider = httpClientProvider;
         _aElfScanOptions = aElfScanOptions.Value;
         _tokenInfoOptions = tokenInfoOptions.Value;
         _assetsInfoOptions = assetsInfoOptions.Value;
+        _logger = logger;
     }
 
     private string GetTokenImage(string symbol)
@@ -60,6 +64,10 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
         var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
         var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
         var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
+        if (tokenInfoResult == null)
+        {
+            _logger.LogError($"Token info result is null. Symbol: {symbol}, request: {requestUrl}");
+        }
         return tokenInfoResult;
     }
     
@@ -76,6 +84,11 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
         var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
         var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
 
+        if (tokenInfoResult == null)
+        {
+            return null;
+        }
+        
         tokenInfo = new TokenInfoDto
         {
             Symbol = tokenInfoResult.Symbol,

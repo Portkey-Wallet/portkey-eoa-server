@@ -5,7 +5,7 @@ namespace EoaServer.UserAssets.Dtos;
 
 public class GetTokenDto
 {
-    public List<TokenWithoutChain> Data { get; set; }
+    public List<TokenWithoutChain> Data { get; set; } = new();
     public string TotalBalanceInUsd { get; set; }
     public long TotalRecordCount { get; set; }
     public long TotalDisplayCount { get; set; }

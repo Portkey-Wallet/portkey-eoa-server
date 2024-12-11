@@ -52,8 +52,15 @@ public class EoaServerDomainTestModule : AbpModule
             var types = GetTypesAssignableFrom<IIndexBuild>(m.Assembly);
             foreach (var t in types)
             {
-                AsyncHelper.RunSync(async () =>
-                    await elasticIndexService.DeleteIndexAsync("IMtest." + t.Name.ToLower()));
+                try
+                {
+                    AsyncHelper.RunSync(async () =>
+                        await elasticIndexService.DeleteIndexAsync("IMtest." + t.Name.ToLower()));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             }
         });
     }

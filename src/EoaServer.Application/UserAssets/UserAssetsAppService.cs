@@ -10,7 +10,9 @@ using EoaServer.Token.Dto;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using EoaServer.UserAssets.Provider;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
@@ -24,7 +26,7 @@ namespace EoaServer.UserAssets;
 public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
 {
     private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aElfScanOptions;
+    private readonly AElfScanOptions _aelfScanOptions;
     private readonly TokenListOptions _tokenListOptions;
     private readonly SeedImageOptions _seedImageOptions;
     private readonly IImageProcessProvider _imageProcessProvider;
@@ -32,6 +34,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     private readonly ITokenInfoAppService _tokenInfoAppService;
     private readonly NftItemDisplayOption _nftItemDisplayOption;
     private readonly ChainOptions _chainOptions;
+    private readonly ILogger<UserAssetsAppService> _logger;
 
     public UserAssetsAppService(IHttpClientProvider httpClientProvider,
         IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
@@ -40,26 +43,28 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         IImageProcessProvider imageProcessProvider,
         IOptionsSnapshot<IpfsOptions> ipfsOption,
         IOptionsSnapshot<ChainOptions> chainOptions,
-        ITokenInfoAppService tokenInfoAppService)
+        ITokenInfoAppService tokenInfoAppService,
+        ILogger<UserAssetsAppService> logger)
     {
         _httpClientProvider = httpClientProvider;
-        _aElfScanOptions = aElfScanOptions.Value;
+        _aelfScanOptions = aElfScanOptions.Value;
         _tokenListOptions = tokenListOptions.Value;
         _seedImageOptions = seedImageOptions.Value;
         _imageProcessProvider = imageProcessProvider;
         _ipfsOptions = ipfsOption.Value;
         _tokenInfoAppService = tokenInfoAppService;
         _chainOptions = chainOptions.Value;
+        _logger = logger;
     }
     
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
     {
         var tokenList = new GetAddressTokenListResultDto();
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTokenAssetsApi;
+        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTokenAssetsApi;
 
         foreach (var addressInfo in requestDto.AddressInfos)
         {
-            var requestUrl = $"{url}?Address={addressInfo.Address}&ChainId={addressInfo.ChainId}&SkipCount={requestDto.SkipCount}&MaxResultCount={requestDto.MaxResultCount}";
+            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount={requestDto.SkipCount}&MaxResultCount={requestDto.MaxResultCount}";
             var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressTokenListResultDto>(requestUrl);
             tokenList.AssetInUsd += chainTokenList.AssetInUsd;
             tokenList.AssetInElf += chainTokenList.AssetInElf;
@@ -69,15 +74,29 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         
         AddDefaultTokens(tokenList);
         
-        var result = await ConvertDtoAsync(tokenList);
+        var result = await ConvertDtoAsync(tokenList, requestDto);
+        
+        result.Data = SortTokens(result.Data);
         
         return result;
+    }
+    
+    private List<TokenWithoutChain> SortTokens(List<TokenWithoutChain> tokens)
+    {
+        var defaultSymbols = _tokenListOptions.UserToken.Select(t => t.Token.Symbol).Distinct().ToList();
+        
+        return tokens.OrderBy(t => decimal.Parse(t.Balance) == 0)
+            .ThenBy(t => t.Symbol != CommonConstant.ELF)
+            .ThenBy(t => !defaultSymbols.Contains(t.Symbol))
+            .ThenBy(t => Array.IndexOf(defaultSymbols.ToArray(), t.Symbol))
+            .ThenBy(t => t.Symbol)
+            .ToList();
     }
     
     public async Task<GetNftCollectionsDto> GetNFTCollectionsAsync(GetNftCollectionsRequestDto requestDto)
     {
         var nftList = new GetAddressNftListResultDto();
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
+        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
 
         foreach (var addressInfo in requestDto.AddressInfos)
         {
@@ -153,6 +172,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         foreach (var nftItem in nftItems)
         {
             var tokenInfo = tokenList.FirstOrDefault(t => t.Symbol == nftItem.Token.Symbol);
+            
             var tokenContractAddress = nftItem.ChainIds.Count > 0 && _chainOptions.ChainInfos.ContainsKey(nftItem.ChainIds[0])
                 ? _chainOptions.ChainInfos[nftItem.ChainIds[0]].TokenContractAddress
                 : null;
@@ -168,16 +188,11 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 TokenContractAddress = tokenContractAddress,
                 Decimals = nftItem.Token.Decimals.ToString(),
                 CollectionSymbol = nftItem.NftCollection.Symbol,
-                InscriptionName = null,
-                LimitPerMint = null,
-                Expires = null,
-                SeedOwnedSymbol = null,
-                Generation = null,
-                Traits = null,
-                TraitsPercentages = null,
                 TokenName = nftItem.Token.Name,
-                Description = null
+                Description = null // todo
             };
+
+            SetNftInfo(resultNftItem, tokenInfo);
             
             resultNftItem.ImageUrl =
                 await _imageProcessProvider.GetResizeImageAsync(nftItem.Token.ImageUrl, requestDto.Width,
@@ -207,6 +222,69 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         CalculateAndSetTraitsPercentageAsync(result.Data);
         
         return result;
+    }
+
+    private void SetNftInfo(NftItem item, IndexerTokenInfoDto indexerTokenInfosDto)
+    {
+        if (indexerTokenInfosDto == null)
+        {
+            return;
+        }
+        
+        var externalInfo = indexerTokenInfosDto.ExternalInfo.ToDictionary(item => item.Key, item => item.Value);
+        
+        var inscriptionDeployMap = new Dictionary<string, string>();
+        var inscriptionDeploy404Exists = externalInfo.TryGetValue("__inscription_deploy", out var inscriptionDeploy);
+        var inscriptionDeployExists = externalInfo.TryGetValue("inscription_deploy", out var inscriptionDeployInfo);
+        if (inscriptionDeploy404Exists)
+        {
+            inscriptionDeployMap = JsonConvert.DeserializeObject<Dictionary<string, string>>(inscriptionDeploy);
+        }
+        else if (inscriptionDeployExists)
+        {
+            inscriptionDeployMap = JsonConvert.DeserializeObject<Dictionary<string, string>>(inscriptionDeployInfo);
+        }
+
+        if (inscriptionDeployMap.TryGetValue("tick", out var inscriptionName))
+        {
+            item.InscriptionName = inscriptionName;
+        }
+
+        if (inscriptionDeployMap.TryGetValue("lim", out var lim))
+        {
+            item.LimitPerMint = lim;
+        }
+
+
+        if (externalInfo.TryGetValue("__seed_owned_symbol", out var seedOwnedSymbol))
+        {
+            item.SeedOwnedSymbol = seedOwnedSymbol;
+        }
+
+        if (externalInfo.TryGetValue("__seed_exp_time", out var seedExpTime))
+        {
+            item.Expires = seedExpTime;
+        }
+
+        if (externalInfo.TryGetValue("__inscription_adopt", out var inscriptionAdopt))
+        {
+            var inscriptionAdoptMap =
+                JsonConvert.DeserializeObject<Dictionary<string, string>>(inscriptionAdopt);
+            if (inscriptionAdoptMap.TryGetValue("gen", out var gen))
+            {
+                item.Generation = gen;
+            }
+
+            if (inscriptionAdoptMap.TryGetValue("tick", out var tick))
+            {
+                item.InscriptionName = tick;
+            }
+        }
+
+        if (externalInfo.TryGetValue("__nft_attributes", out var attributes))
+        {
+            item.Traits = attributes;
+        }
     }
     
     private void CalculateAndSetTraitsPercentageAsync(List<NftItem> nftItems)
@@ -322,7 +400,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     private async Task<List<AddressNftInfoDto>> GetUserCollectionItemsAsync(List<AddressInfo> addressInfos, string symbol)
     {
         var nftList = new List<AddressNftInfoDto>();
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
+        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
 
         foreach (var addressInfo in addressInfos)
         {
@@ -356,7 +434,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         }
     }
     
-    private async Task<GetTokenDto> ConvertDtoAsync(GetAddressTokenListResultDto fromDto)
+    private async Task<GetTokenDto> ConvertDtoAsync(GetAddressTokenListResultDto fromDto, GetTokenRequestDto requestDto)
     {
         var result = new GetTokenDto()
         {
@@ -380,7 +458,6 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 BalanceInUsd = fromTokenInfoDto.ValueOfUsd.ToString(),
                 TokenContractAddress = tokenContractAddress,
                 ImageUrl = fromTokenInfoDto.Token.ImageUrl,
-                Label = null
             };
             
             var resultTokenInfo = result.Data.FirstOrDefault(t => t.Symbol == fromTokenInfoDto.Token.Symbol);
@@ -395,7 +472,6 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                     BalanceInUsd = fromTokenInfoDto.ValueOfUsd.ToString(),
                     TokenContractAddress = tokenContractAddress,
                     ImageUrl = fromTokenInfoDto.Token.ImageUrl,
-                    Label = null,
                     Tokens = new List<Dtos.Token>()
                     {
                         token
@@ -408,6 +484,30 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 resultTokenInfo.BalanceInUsd = (decimal.Parse(resultTokenInfo.BalanceInUsd) + fromTokenInfoDto.ValueOfUsd).ToString();
                 resultTokenInfo.Tokens.Add(token);
             }
+        }
+
+        foreach (var tokenWithoutChain in result.Data)
+        {
+            foreach (var addressInfo in requestDto.AddressInfos)
+            {
+                var chainTokenInfo = tokenWithoutChain.Tokens.FirstOrDefault(t => t.ChainId == addressInfo.ChainId);
+                if (chainTokenInfo == null)
+                {
+                    tokenWithoutChain.Tokens.Add(new Dtos.Token
+                    {
+                        ChainId = addressInfo.ChainId,
+                        Symbol = tokenWithoutChain.Symbol,
+                        Price = 0,
+                        Balance = "0",
+                        Decimals = tokenWithoutChain.Decimals,
+                        BalanceInUsd = "0",
+                        TokenContractAddress = _chainOptions.ChainInfos[addressInfo.ChainId].TokenContractAddress,
+                        ImageUrl = tokenWithoutChain.ImageUrl
+                    });
+                }
+            }
+
+            tokenWithoutChain.Tokens.OrderByDescending(t => t.ChainId);
         }
 
         result.TotalDisplayCount = result.Data.Select(item => item.Tokens.Count).Sum();

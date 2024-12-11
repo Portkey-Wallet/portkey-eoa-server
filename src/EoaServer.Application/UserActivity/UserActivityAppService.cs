@@ -29,7 +29,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
 {
     private readonly ILogger<UserActivityAppService> _logger;
     private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aElfScanOptions;
+    private readonly AElfScanOptions _aelfScanOptions;
     private readonly ActivityOptions _activityOptions;
     private readonly TokenSpenderOptions _tokenSpenderOptions;
     private readonly ChainOptions _chainOptions;
@@ -48,19 +48,20 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         _activityOptions = activityOptions.Value;
         _tokenSpenderOptions = tokenSpenderOptions.Value;
         _chainOptions = chainOptions.Value;
-        _aElfScanOptions = aElfScanOptions.Value;
+        _aelfScanOptions = aElfScanOptions.Value;
         _tokenInfoAppService = tokenInfoAppService;
     }
     
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
     {
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
+        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
         var requestUrl = $"{url}?TransactionId={request.TransactionId}&ChainId={request.ChainId}";
         
         var txnDto = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
 
         if (txnDto == null || txnDto.List.Count < 1)
         {
+            _logger.LogError($"Get TransactionDetailResponseDto failed, request url: {requestUrl}");
             return null;
         }
 
@@ -70,24 +71,30 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request)
     {
-        var baseUrl = _aElfScanOptions.BaseUrl;
+        var address = request.AddressInfos[0].Address;
+        var chainId = request.AddressInfos.Count == 1 ? request.AddressInfos[0].ChainId : null;
+        
+        var baseUrl = _aelfScanOptions.BaseUrl;
 
-        var transactionsUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransactionsApi}?" +
-                              $"address={request.Address}&" +
-                              $"skipCount=0&" +
-                              $"maxResultCount={request.SkipCount + request.MaxResultCount}";
+        var transactionsUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransactionsApi}?";
+        transactionsUrl += chainId != null ? $"chainId={chainId}&" : "";
+        transactionsUrl += $"address={address}&" +
+                           $"skipCount=0&" +
+                           $"maxResultCount={request.SkipCount + request.MaxResultCount}";
 
-        var tokenTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?" +
-                                $"tokenType=0&" +
-                                $"address={request.Address}&" +
-                                $"skipCount=0&" +
-                                $"maxResultCount={request.SkipCount + request.MaxResultCount}";
+        var tokenTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?";
+        tokenTransfersUrl += chainId != null ? $"chainId={chainId}&" : "";
+        tokenTransfersUrl += $"tokenType=0&" +
+                             $"address={address}&" +
+                             $"skipCount=0&" +
+                             $"maxResultCount={request.SkipCount + request.MaxResultCount}";
 
-        var nftTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?" +
-                              $"tokenType=1&" +
-                              $"address={request.Address}&" +
-                              $"skipCount=0&" +
-                              $"maxResultCount={request.SkipCount + request.MaxResultCount}";
+        var nftTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?";
+        nftTransfersUrl += chainId != null ? $"chainId={chainId}&" : "";
+        nftTransfersUrl += $"tokenType=1&" +
+                           $"address={address}&" +
+                           $"skipCount=0&" +
+                           $"maxResultCount={request.SkipCount + request.MaxResultCount}";
 
         var txnsTask = _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl);
         var tokenTransfersTask = _httpClientProvider.GetDataAsync<GetTransferListResultDto>(tokenTransfersUrl);
@@ -99,6 +106,8 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         var tokenTransfers = await tokenTransfersTask;
         var nftTransfers = await nftTransfersTask;
 
+        tokenTransfers.List.AddRange(nftTransfers.List);
+        
         foreach (var transfer in tokenTransfers.List)
         {
             var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
@@ -107,20 +116,8 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                 txns.Transactions.Add(new TransactionResponseDto
                 {
                     TransactionId = transfer.TransactionId,
-                    ChainIds = transfer.ChainIds
-                });
-            }
-        }
-        
-        foreach (var transfer in nftTransfers.List)
-        {
-            var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
-            if (txn == null)
-            {
-                txns.Transactions.Add(new TransactionResponseDto
-                {
-                    TransactionId = transfer.TransactionId,
-                    ChainIds = transfer.ChainIds
+                    ChainIds = transfer.ChainIds,
+                    Timestamp = transfer.BlockTime
                 });
             }
         }
@@ -140,7 +137,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             
             txnChainMap[txn.TransactionId] = txn.ChainIds[0];
             
-            var detailUrl = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
+            var detailUrl = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
             var requestUrl = $"{detailUrl}?TransactionId={txn.TransactionId}&ChainId={txn.ChainIds[0]}";
             
             var txnDetail = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
@@ -191,7 +188,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         var mapTasks = result.Select(async token =>
         {
-            return await _tokenInfoAppService.GetAsync(token.Key, tokenChain);
+            return await _tokenInfoAppService.GetAsync(tokenChain, token.Key);
         }).ToList();
 
         var tokenList = await Task.WhenAll(mapTasks);
@@ -280,7 +277,6 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             TransactionName = dto.Method,
             TransactionType = dto.Method,
             Timestamp = dto.Timestamp.ToString(),
-            BlockHash = null, // todo
             FromAddress = dto.From.Address,
             ToAddress = dto.To.Address,
             ChainId = chainId,
@@ -291,7 +287,18 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             ToChainIcon = ChainDisplayNameHelper.MustGetChainUrl(chainId),
             ToChainIdUpdated = ChainDisplayNameHelper.MustGetChainDisplayName(chainId),
         };
-       
+
+        foreach (var dtoTransactionFee in dto.TransactionFees)
+        {
+            activityDto.TransactionFees.Add(new TransactionFee
+            {
+                Symbol = dtoTransactionFee.Symbol,
+                Fee = dtoTransactionFee.Amount,
+                FeeInUsd = dtoTransactionFee.NowPrice,
+                Decimals = tokenMap[dtoTransactionFee.Symbol]?.Decimals.ToString()
+            });
+        }
+        
         SetDAppInfo(dto.To.Address, activityDto, dto.From.Address, dto.Method);
         
         foreach (var tokenTransferred in dto.TokenTransferreds)
