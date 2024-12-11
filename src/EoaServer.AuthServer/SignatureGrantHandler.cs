@@ -9,6 +9,7 @@ using AElf.Cryptography;
 using AElf.Types;
 using EoaServer.AuthServer.Options;
 using EoaServer.Commons;
+using EoaServer.User;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -33,11 +34,8 @@ public class SignatureGrantHandler : ITokenExtensionGrant
     private IDistributedEventBus _distributedEventBus;
     private ILogger<SignatureGrantHandler> _logger;
     private IAbpDistributedLock _distributedLock;
-
-    private readonly string _lockKeyPrefix = "EoaServer:Auth:SignatureGrantHandler:";
-
-    //private ISignatureProvider _signatureProvider;
     private IDistributedCache<string> _distributedCache;
+    private readonly string _lockKeyPrefix = "EoaServer:Auth:SignatureGrantHandler:";
 
     public async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
     {
@@ -69,11 +67,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant
                 $"The time should be {timeRangeConfig.TimeRange} minutes before and after the current time.");
         }
 
-        // var hash = Encoding.UTF8.GetBytes(address + "-" + timestamp).ComputeHash();
-        // if (!CryptoHelper.VerifySignature(signature, hash, publicKey))
-        // {
-        //     return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
-        // }
+        var hash = Encoding.UTF8.GetBytes(address + "-" + timestamp).ComputeHash();
+        if (!CryptoHelper.VerifySignature(signature, hash, publicKey))
+        {
+            return GetForbidResult(OpenIddictConstants.Errors.InvalidRequest, "Signature validation failed.");
+        }
 
         var userManager = context.HttpContext.RequestServices.GetRequiredService<IdentityUserManager>();
         var user = await userManager.FindByNameAsync(address);
@@ -175,11 +173,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant
 
             if (identityResult.Succeeded)
             {
-                // await _distributedEventBus.PublishAsync(new UserEto
-                // {
-                //     UserId = userId,
-                //     Address = address
-                // }, false, false);
+                await _distributedEventBus.PublishAsync(new UserEto
+                {
+                    UserId = userId,
+                    Address = address
+                }, false, false);
                 _logger.LogInformation("create user success, userId:{userId}, address:{address}", userId.ToString(),
                     address);
             }
