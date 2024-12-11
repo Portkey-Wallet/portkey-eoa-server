@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Account\CAHolderRecovery.cs~RF1790e3ec.TMP" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\EoaServer.Domain.Shared\EoaServer.Domain.Shared.csproj" />
   </ItemGroup>
 

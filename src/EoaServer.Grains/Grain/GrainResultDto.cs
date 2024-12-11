@@ -12,6 +12,7 @@ public class GrainResultDto<T> : GrainResultDto
 public class GrainResultDto
 {
     [Id(0)] public string Code { get; set; } = CommonConstant.SuccessCode;
+    [Id(1)] public string Message { get; set; }
     
     public bool Success() => Code == CommonConstant.SuccessCode;
 }
