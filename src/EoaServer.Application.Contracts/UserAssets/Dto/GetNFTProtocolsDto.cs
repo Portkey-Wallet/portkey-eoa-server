@@ -5,7 +5,7 @@ namespace EoaServer.UserAssets.Dtos;
 
 public class GetNftCollectionsDto
 {
-    public List<NftCollection> Data { get; set; }
+    public List<NftCollection> Data { get; set; } = new();
     public long TotalRecordCount { get; set; }
     public long TotalNftItemCount { get; set; }
 }

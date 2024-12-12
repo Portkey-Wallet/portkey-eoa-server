@@ -44,6 +44,6 @@ public class EoaServerApplicationModule : AbpModule
         Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfo"));
         Configure<SeedImageOptions>(configuration.GetSection("SeedSymbolImage"));
         Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
-
+        Configure<NftItemDisplayOption>(configuration.GetSection("NftItemDisplay"));
     }
 }

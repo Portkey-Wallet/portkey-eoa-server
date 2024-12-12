@@ -288,15 +288,18 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             ToChainIdUpdated = ChainDisplayNameHelper.MustGetChainDisplayName(chainId),
         };
 
-        foreach (var dtoTransactionFee in dto.TransactionFees)
+        if (dto.TransactionFees != null)
         {
-            activityDto.TransactionFees.Add(new TransactionFee
+            foreach (var dtoTransactionFee in dto.TransactionFees)
             {
-                Symbol = dtoTransactionFee.Symbol,
-                Fee = dtoTransactionFee.Amount,
-                FeeInUsd = dtoTransactionFee.NowPrice,
-                Decimals = tokenMap[dtoTransactionFee.Symbol]?.Decimals.ToString()
-            });
+                activityDto.TransactionFees.Add(new TransactionFee
+                {
+                    Symbol = dtoTransactionFee.Symbol,
+                    Fee = dtoTransactionFee.Amount,
+                    FeeInUsd = dtoTransactionFee.NowPrice,
+                    Decimals = tokenMap[dtoTransactionFee.Symbol]?.Decimals.ToString()
+                });
+            }
         }
         
         SetDAppInfo(dto.To.Address, activityDto, dto.From.Address, dto.Method);

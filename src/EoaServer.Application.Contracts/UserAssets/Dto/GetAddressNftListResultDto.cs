@@ -6,7 +6,7 @@ namespace EoaServer.UserAssets.Dtos;
 public class GetAddressNftListResultDto
 {
     public long Total { get; set; }
-    public List<AddressNftInfoDto> List { get; set; }
+    public List<AddressNftInfoDto> List { get; set; } = new();
 }
 
 public class AddressNftInfoDto

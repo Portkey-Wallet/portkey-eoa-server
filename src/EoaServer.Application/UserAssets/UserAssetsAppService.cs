@@ -44,7 +44,8 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         IOptionsSnapshot<IpfsOptions> ipfsOption,
         IOptionsSnapshot<ChainOptions> chainOptions,
         ITokenInfoAppService tokenInfoAppService,
-        ILogger<UserAssetsAppService> logger)
+        ILogger<UserAssetsAppService> logger,
+        IOptionsSnapshot<NftItemDisplayOption> nftItemDisplayOptions)
     {
         _httpClientProvider = httpClientProvider;
         _aelfScanOptions = aElfScanOptions.Value;
@@ -55,6 +56,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         _tokenInfoAppService = tokenInfoAppService;
         _chainOptions = chainOptions.Value;
         _logger = logger;
+        _nftItemDisplayOption = nftItemDisplayOptions.Value;
     }
     
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
@@ -64,7 +66,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
 
         foreach (var addressInfo in requestDto.AddressInfos)
         {
-            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount={requestDto.SkipCount}&MaxResultCount={requestDto.MaxResultCount}";
+            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount=0&MaxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
             var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressTokenListResultDto>(requestUrl);
             tokenList.AssetInUsd += chainTokenList.AssetInUsd;
             tokenList.AssetInElf += chainTokenList.AssetInElf;
@@ -77,12 +79,19 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         var result = await ConvertDtoAsync(tokenList, requestDto);
         
         result.Data = SortTokens(result.Data);
+        result.TotalRecordCount = result.Data.Count;
+        result.Data = result.Data.Skip(requestDto.SkipCount).Take(requestDto.MaxResultCount).ToList();
         
         return result;
     }
     
     private List<TokenWithoutChain> SortTokens(List<TokenWithoutChain> tokens)
     {
+        foreach (var tokenWithoutChain in tokens)
+        {
+            tokenWithoutChain.Tokens = tokenWithoutChain.Tokens.OrderByDescending(t => t.ChainId).ToList();
+        }
+        
         var defaultSymbols = _tokenListOptions.UserToken.Select(t => t.Token.Symbol).Distinct().ToList();
         
         return tokens.OrderBy(t => decimal.Parse(t.Balance) == 0)
@@ -95,24 +104,26 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     
     public async Task<GetNftCollectionsDto> GetNFTCollectionsAsync(GetNftCollectionsRequestDto requestDto)
     {
+        var result = new GetNftCollectionsDto();
         var nftList = new GetAddressNftListResultDto();
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
 
         foreach (var addressInfo in requestDto.AddressInfos)
         {
             // get all NFT for TotalNftItemCount
-            var requestUrl = $"{url}?Address={addressInfo.Address}&ChainId={addressInfo.ChainId}&SkipCount=0&MaxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
+            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount=0&maxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
             var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressNftListResultDto>(requestUrl);
-            nftList.Total += chainTokenList.Total;
-            nftList.List.AddRange(chainTokenList.List);
+            if (chainTokenList != null)
+            {
+                nftList.Total += chainTokenList.Total;
+                nftList.List.AddRange(chainTokenList.List);
+            }
+            else
+            {
+                _logger.LogError($"Get Nft list result is null. request: {requestUrl}");
+            }
         }
         
-        var result = new GetNftCollectionsDto()
-        {
-            TotalNftItemCount = nftList.Total
-        };
-
-        result.Data = new List<NftCollection>();
         foreach (var nftInfoDto in nftList.List)
         {
             var collection = result.Data.FirstOrDefault(t => t.Symbol == nftInfoDto.NftCollection.Symbol && t.ChainId == nftInfoDto.ChainIds[0]);
@@ -141,9 +152,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
             }
         }
 
-        result.TotalRecordCount = nftList.List.Count();
+        result.TotalNftItemCount = nftList.List.Count;
+        result.TotalRecordCount = result.Data.Count();
         
-        nftList.List = nftList.List.Skip(requestDto.SkipCount).Take(requestDto.MaxResultCount).ToList();
+        result.Data = result.Data.Skip(requestDto.SkipCount).Take(requestDto.MaxResultCount).ToList();
         
         TryUpdateImageUrlForCollections(result.Data);
         DealWithDisplayChainImage(result);
@@ -405,9 +417,17 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         foreach (var addressInfo in addressInfos)
         {
             // get all NFT for TotalNftItemCount
-            var requestUrl = $"{url}?Address={addressInfo.Address}&ChainId={addressInfo.ChainId}&SkipCount=0&MaxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
+            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount=0&maxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
             var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressNftListResultDto>(requestUrl);
-            nftList.AddRange(chainTokenList.List);
+            if (chainTokenList != null)
+            {
+                nftList.AddRange(chainTokenList.List);
+            }
+            else
+            {
+                _logger.LogError($"Get Nft list result is null. request: {requestUrl}");
+            }
+            
         }
 
         return nftList.Where(t => t.NftCollection.Symbol == symbol).ToList();
@@ -506,8 +526,6 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                     });
                 }
             }
-
-            tokenWithoutChain.Tokens.OrderByDescending(t => t.ChainId);
         }
 
         result.TotalDisplayCount = result.Data.Select(item => item.Tokens.Count).Sum();

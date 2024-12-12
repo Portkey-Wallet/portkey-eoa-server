@@ -40,7 +40,7 @@ public class UserActivityAppServiceTest : EoaServerApplicationTestBase
         result.Operations[1].Amount.ShouldBe("1");
         result.Operations[1].Symbol.ShouldBe("BBB-2");
         result.Operations[1].NftInfo.ImageUrl.ShouldBe("BBB-2_ImageUrl");
-        result.Operations[1].NftInfo.Alias.ShouldBe("bbb2tokenname");
+        result.Operations[1].NftInfo.Alias.ShouldBe("xxx2");
         result.Operations[1].NftInfo.NftId.ShouldBe("2");
         result.Operations[1].IsReceived.ShouldBeTrue();
     }

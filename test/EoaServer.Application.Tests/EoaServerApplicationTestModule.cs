@@ -73,14 +73,16 @@ public class EoaServerApplicationTestModule : AbpModule
                     EoaServerApplicationTestConstant.ChainIdAELF, new ChainInfo()
                     {
                         ChainId = EoaServerApplicationTestConstant.ChainIdAELF,
-                        IsMainChain = true
+                        IsMainChain = true,
+                        TokenContractAddress = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE"
                     }
                 },
                 {
                     EoaServerApplicationTestConstant.ChainIdTDVW, new ChainInfo()
                     {
                         ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
-                        IsMainChain = false
+                        IsMainChain = false,
+                        TokenContractAddress = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx"
                     }
                 },
             };
@@ -89,6 +91,16 @@ public class EoaServerApplicationTestModule : AbpModule
         Configure<AElfScanOptions>(options =>
         {
             options.BaseUrl = "mockAElfScanUrl";
+        });
+        
+        Configure<SeedImageOptions>(options =>
+        {
+            options.SeedImageDic = new Dictionary<string, string>();
+        });
+        
+        Configure<NftItemDisplayOption>(options =>
+        {
+            options.RecommendedRefreshSeconds = 30;
         });
         
         var tokenList = new List<UserTokenItem>();
@@ -160,10 +172,102 @@ public class EoaServerApplicationTestModule : AbpModule
         MockTokenInfoData(mockHttpProvider);
         MockTransactionData(mockHttpProvider);
         MockAssetsData(mockHttpProvider);
+        MockNftAssetsData(mockHttpProvider);
         
         context.Services.AddSingleton<IHttpClientProvider>(mockHttpProvider.Object);
     }
 
+    private void MockNftAssetsData(Mock<IHttpClientProvider> mockHttpProvider)
+    {
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<GetAddressNftListResultDto>(
+            It.Is<string>(url =>
+                url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserNFTAssetsApi) &&
+                url.Contains(
+                    $"address={EoaServerApplicationTestConstant.User1Address}&chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&skipCount=0"))
+        )).ReturnsAsync(new GetAddressNftListResultDto
+        {
+            List = new List<AddressNftInfoDto>()
+            {
+                new AddressNftInfoDto
+                {
+                    Token = new TokenBaseInfo()
+                    {
+                        Name = EoaServerApplicationTestConstant.NftBBB2TokenName,
+                        Symbol = EoaServerApplicationTestConstant.NftBBB2Symbol,
+                        ImageUrl = EoaServerApplicationTestConstant.NftBBB2Icon,
+                        Decimals = 0
+                    },
+                    NftCollection = new TokenBaseInfo()
+                    {
+                        Name = "xxx",
+                        Symbol = EoaServerApplicationTestConstant.NftBBBCollectionSymbol,
+                        ImageUrl = "BBB-0_ImageUrl",
+                        Decimals = 0
+                    },
+                    Quantity = 1,
+                    ChainIds = new List<string>()
+                    {
+                        EoaServerApplicationTestConstant.ChainIdTDVW
+                    }
+                },
+                new AddressNftInfoDto
+                {
+                    Token = new TokenBaseInfo()
+                    {
+                        Name = EoaServerApplicationTestConstant.NftBBB1TokenName,
+                        Symbol = EoaServerApplicationTestConstant.NftBBB1Symbol,
+                        ImageUrl = EoaServerApplicationTestConstant.NftBBB1Icon,
+                        Decimals = 0
+                    },
+                    NftCollection = new TokenBaseInfo()
+                    {
+                        Name = EoaServerApplicationTestConstant.NftBBBCollectionTokenName,
+                        Symbol = EoaServerApplicationTestConstant.NftBBBCollectionSymbol,
+                        ImageUrl = EoaServerApplicationTestConstant.NftBBBCollectionIcon,
+                        Decimals = 0
+                    },
+                    Quantity = 1,
+                    ChainIds = new List<string>()
+                    {
+                        EoaServerApplicationTestConstant.ChainIdTDVW
+                    }
+                }
+            }
+        });
+        
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<GetAddressTokenListResultDto>(
+            It.Is<string>(url =>
+                url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTokenAssetsApi) &&
+                url.Contains(
+                    $"address={EoaServerApplicationTestConstant.User1Address}&chainId={EoaServerApplicationTestConstant.ChainIdAELF}&skipCount=0"))
+        )).ReturnsAsync(new GetAddressTokenListResultDto
+        {
+            List = new List<TokenInfoDto>()
+            {
+                new TokenInfoDto
+                {
+                    Token = new TokenBaseInfo()
+                    {
+                        Symbol = EoaServerApplicationTestConstant.TokenElfSymbol,
+                        ImageUrl = EoaServerApplicationTestConstant.TokenElfIcon,
+                        Decimals = 8
+                    },
+                    Quantity = 2,
+                    ValueOfUsd = 2,
+                    PriceOfUsd = 2,
+                    PriceOfUsdPercentChange24h = 2,
+                    PriceOfElf = 2,
+                    ValueOfElf = 2,
+                    ChainIds = new List<string>()
+                    {
+                        EoaServerApplicationTestConstant.ChainIdAELF
+                    },
+                    Type = SymbolType.Token
+                }
+            }
+        });
+    }
+    
     private void MockAssetsData(Mock<IHttpClientProvider> mockHttpProvider)
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<GetAddressTokenListResultDto>(
@@ -181,6 +285,26 @@ public class EoaServerApplicationTestModule : AbpModule
                     {
                         Symbol = EoaServerApplicationTestConstant.TokenElfSymbol,
                         ImageUrl = EoaServerApplicationTestConstant.TokenElfIcon,
+                        Decimals = 8
+                    },
+                    Quantity = 1,
+                    ValueOfUsd = 1,
+                    PriceOfUsd = 1,
+                    PriceOfUsdPercentChange24h = 1,
+                    PriceOfElf = 1,
+                    ValueOfElf = 1,
+                    ChainIds = new List<string>()
+                    {
+                        EoaServerApplicationTestConstant.ChainIdTDVW
+                    },
+                    Type = SymbolType.Token
+                },
+                new TokenInfoDto
+                {
+                    Token = new TokenBaseInfo()
+                    {
+                        Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol,
+                        ImageUrl = EoaServerApplicationTestConstant.TokenSgrIcon,
                         Decimals = 8
                     },
                     Quantity = 1,
@@ -346,9 +470,9 @@ public class EoaServerApplicationTestModule : AbpModule
                     {
                         new NftsTransferredDto()
                         {
-                            Symbol = EoaServerApplicationTestConstant.NftBBBSymbol,
+                            Symbol = EoaServerApplicationTestConstant.NftBBB2Symbol,
                             Amount = 1,
-                            ImageUrl = EoaServerApplicationTestConstant.NftBBBIcon,
+                            ImageUrl = EoaServerApplicationTestConstant.NftBBB2Icon,
                             From = new CommonAddressDto()
                             {
                                 Address = ""
@@ -430,9 +554,9 @@ public class EoaServerApplicationTestModule : AbpModule
                     {
                         new NftsTransferredDto()
                         {
-                            Symbol = EoaServerApplicationTestConstant.NftBBBSymbol,
+                            Symbol = EoaServerApplicationTestConstant.NftBBB2Symbol,
                             Amount = 1,
-                            ImageUrl = EoaServerApplicationTestConstant.NftBBBIcon,
+                            ImageUrl = EoaServerApplicationTestConstant.NftBBB2Icon,
                             From = new CommonAddressDto()
                             {
                                 Address = EoaServerApplicationTestConstant.User2Address
@@ -465,8 +589,21 @@ public class EoaServerApplicationTestModule : AbpModule
         )).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 0,
-            Symbol = EoaServerApplicationTestConstant.NftBBBSymbol,
-            TokenName = EoaServerApplicationTestConstant.NftBBBTokenName
+            Symbol = EoaServerApplicationTestConstant.NftBBB2Symbol,
+            TokenName = EoaServerApplicationTestConstant.NftBBB2TokenName,
+            Supply = 123,
+            TotalSupply = 234
+        });
+        
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
+            $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=BBB-1&ChainId=tDVW"
+        )).ReturnsAsync(new IndexerTokenInfoDto
+        {
+            Decimals = 0,
+            Symbol = EoaServerApplicationTestConstant.NftBBB1Symbol,
+            TokenName = EoaServerApplicationTestConstant.NftBBB2TokenName,
+            Supply = 223,
+            TotalSupply = 233
         });
     }
 }

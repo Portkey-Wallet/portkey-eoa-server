@@ -13,7 +13,18 @@ public class EoaServerApplicationTestConstant
     public const string TokenElfSymbol = "ELF";
     public const string TokenElfIcon = "ELF_ImageUrl";
     
-    public const string NftBBBSymbol = "BBB-2";
-    public const string NftBBBTokenName = "bbb2tokenname";
-    public const string NftBBBIcon = "BBB-2_ImageUrl";
+    public const string TokenSgrSymbol = "SGR";
+    public const string TokenSgrIcon = "SGR_ImageUrl";
+    
+    public const string NftBBBCollectionSymbol = "BBB-0";
+    public const string NftBBBCollectionTokenName = "xxx0";
+    public const string NftBBBCollectionIcon = "BBB-0_ImageUrl";
+    
+    public const string NftBBB2Symbol = "BBB-2";
+    public const string NftBBB2TokenName = "xxx2";
+    public const string NftBBB2Icon = "BBB-2_ImageUrl";
+    
+    public const string NftBBB1Symbol = "BBB-1";
+    public const string NftBBB1TokenName = "xxx1";
+    public const string NftBBB1Icon = "BBB-1_ImageUrl";
 }
