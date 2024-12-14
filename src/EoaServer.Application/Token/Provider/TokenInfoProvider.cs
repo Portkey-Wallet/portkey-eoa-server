@@ -13,30 +13,37 @@ using Volo.Abp.Caching;
 
 namespace EoaServer.Token;
 
-[RemoteService(false)]
-[DisableAuditing]
-public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
+
+public interface ITokenInfoProvider
+{
+    Task<TokenInfoDto> GetAsync(string chainId, string symbol);
+}
+
+public class TokenInfoProvider : EoaServerBaseService, ITokenInfoProvider
 {
     private readonly IDistributedCache<TokenInfoDto> _tokenInfoCache;
     private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aElfScanOptions;
+    private readonly AElfScanOptions _aelfScanOptions;
     private readonly TokenInfoOptions _tokenInfoOptions;
     private readonly AssetsInfoOptions _assetsInfoOptions;
-    private readonly ILogger<TokenInfoAppService> _logger;
+    private readonly ILogger<TokenInfoProvider> _logger;
+    private readonly ChainOptions _chainOptions;
 
-    public TokenInfoAppService(IDistributedCache<TokenInfoDto> tokenCache,
+    public TokenInfoProvider(IDistributedCache<TokenInfoDto> tokenCache,
         IHttpClientProvider httpClientProvider,
         IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
         IOptionsSnapshot<TokenInfoOptions> tokenInfoOptions,
         IOptionsSnapshot<AssetsInfoOptions> assetsInfoOptions,
-        ILogger<TokenInfoAppService> logger)
+        ILogger<TokenInfoProvider> logger,
+        IOptionsSnapshot<ChainOptions> chainOptions)
     {
         _tokenInfoCache = tokenCache;
         _httpClientProvider = httpClientProvider;
-        _aElfScanOptions = aElfScanOptions.Value;
+        _aelfScanOptions = aElfScanOptions.Value;
         _tokenInfoOptions = tokenInfoOptions.Value;
         _assetsInfoOptions = assetsInfoOptions.Value;
         _logger = logger;
+        _chainOptions = chainOptions.Value;
     }
 
     private string GetTokenImage(string symbol)
@@ -58,18 +65,6 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
 
         return $"{_assetsInfoOptions.ImageUrlPrefix}{symbol}{_assetsInfoOptions.ImageUrlSuffix}";
     }
-
-    public async Task<IndexerTokenInfoDto> GetIndexerTokenInfoAsync(string chainId, string symbol)
-    {
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
-        var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
-        var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
-        if (tokenInfoResult == null)
-        {
-            _logger.LogError($"Token info result is null. Symbol: {symbol}, request: {requestUrl}");
-        }
-        return tokenInfoResult;
-    }
     
     public async Task<TokenInfoDto> GetAsync(string chainId, string symbol)
     {
@@ -80,7 +75,7 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
             return tokenInfo;
         }
         
-        var url = _aElfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
+        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
         var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
         var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
 
@@ -95,7 +90,8 @@ public class TokenInfoAppService : EoaServerBaseService, ITokenInfoAppService
             Decimals = tokenInfoResult.Decimals,
             ChainId = tokenInfoResult.IssueChainId,
             ImageUri = GetTokenImage(tokenInfoResult.Symbol),
-            TokenName = tokenInfoResult.TokenName
+            TokenName = tokenInfoResult.TokenName,
+            Address = _chainOptions.ChainInfos[chainId].TokenContractAddress
         };
 
         _tokenInfoCache.SetAsync(tokenKey, tokenInfo, new DistributedCacheEntryOptions

@@ -28,40 +28,35 @@ namespace EoaServer.UserActivity;
 public class UserActivityAppService : EoaServerBaseService, IUserActivityAppService
 {
     private readonly ILogger<UserActivityAppService> _logger;
-    private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aelfScanOptions;
     private readonly ActivityOptions _activityOptions;
     private readonly TokenSpenderOptions _tokenSpenderOptions;
     private readonly ChainOptions _chainOptions;
-    private readonly ITokenInfoAppService _tokenInfoAppService;
-    
+    private readonly ITokenInfoProvider _tokenInfoProvider;
+    private readonly IAElfScanDataProvider _aelfScanDataProvider;
+
     public UserActivityAppService(ILogger<UserActivityAppService> logger,
-        IHttpClientProvider httpClientProvider,
         IOptionsSnapshot<ActivityOptions> activityOptions,
         IOptionsSnapshot<TokenSpenderOptions> tokenSpenderOptions,
         IOptionsSnapshot<ChainOptions> chainOptions,
-        IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
-        ITokenInfoAppService tokenInfoAppService)
+        ITokenInfoProvider tokenInfoProvider,
+        IAElfScanDataProvider aelfScanDataProvider)
     {
         _logger = logger;
-        _httpClientProvider = httpClientProvider;
         _activityOptions = activityOptions.Value;
         _tokenSpenderOptions = tokenSpenderOptions.Value;
         _chainOptions = chainOptions.Value;
-        _aelfScanOptions = aElfScanOptions.Value;
-        _tokenInfoAppService = tokenInfoAppService;
+        _tokenInfoProvider = tokenInfoProvider;
+        _aelfScanDataProvider = aelfScanDataProvider;
+
     }
     
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
     {
-        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
-        var requestUrl = $"{url}?TransactionId={request.TransactionId}&ChainId={request.ChainId}";
-        
-        var txnDto = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
+        var txnDto = await _aelfScanDataProvider.GetTransactionDetailAsync(request.ChainId, request.TransactionId);
 
         if (txnDto == null || txnDto.List.Count < 1)
         {
-            _logger.LogError($"Get TransactionDetailResponseDto failed, request url: {requestUrl}");
+            _logger.LogError($"Get TransactionDetailResponseDto failed, chainId: {request.ChainId}, transactionId: {request.TransactionId}");
             return null;
         }
 
@@ -74,31 +69,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         var address = request.AddressInfos[0].Address;
         var chainId = request.AddressInfos.Count == 1 ? request.AddressInfos[0].ChainId : null;
         
-        var baseUrl = _aelfScanOptions.BaseUrl;
-
-        var transactionsUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransactionsApi}?";
-        transactionsUrl += chainId != null ? $"chainId={chainId}&" : "";
-        transactionsUrl += $"address={address}&" +
-                           $"skipCount=0&" +
-                           $"maxResultCount={request.SkipCount + request.MaxResultCount}";
-
-        var tokenTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?";
-        tokenTransfersUrl += chainId != null ? $"chainId={chainId}&" : "";
-        tokenTransfersUrl += $"tokenType=0&" +
-                             $"address={address}&" +
-                             $"skipCount=0&" +
-                             $"maxResultCount={request.SkipCount + request.MaxResultCount}";
-
-        var nftTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?";
-        nftTransfersUrl += chainId != null ? $"chainId={chainId}&" : "";
-        nftTransfersUrl += $"tokenType=1&" +
-                           $"address={address}&" +
-                           $"skipCount=0&" +
-                           $"maxResultCount={request.SkipCount + request.MaxResultCount}";
-
-        var txnsTask = _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl);
-        var tokenTransfersTask = _httpClientProvider.GetDataAsync<GetTransferListResultDto>(tokenTransfersUrl);
-        var nftTransfersTask = _httpClientProvider.GetDataAsync<GetTransferListResultDto>(nftTransfersUrl);
+        var txnsTask = _aelfScanDataProvider.GetAddressTransactionsAsync(chainId, address, 0, request.SkipCount + request.MaxResultCount);
+        var tokenTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount);
+        var nftTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 1, 0, request.SkipCount + request.MaxResultCount);
 
         await Task.WhenAll(txnsTask, tokenTransfersTask, nftTransfersTask);
 
@@ -134,13 +107,8 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             {
                 return null;
             }
-            
             txnChainMap[txn.TransactionId] = txn.ChainIds[0];
-            
-            var detailUrl = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
-            var requestUrl = $"{detailUrl}?TransactionId={txn.TransactionId}&ChainId={txn.ChainIds[0]}";
-            
-            var txnDetail = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
+            var txnDetail = await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainIds[0], txn.TransactionId);
             return txnDetail;
         }).ToList();
 
@@ -188,7 +156,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         var mapTasks = result.Select(async token =>
         {
-            return await _tokenInfoAppService.GetAsync(tokenChain, token.Key);
+            return await _tokenInfoProvider.GetAsync(tokenChain, token.Key);
         }).ToList();
 
         var tokenList = await Task.WhenAll(mapTasks);

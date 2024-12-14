@@ -30,6 +30,7 @@ public static class CommonConstant
     public const string AelfScanUserTransfersApi = "api/app/address/transfers";
     public const string AelfScanTransactionDetailApi = "api/app/blockchain/transactionDetail";
     public const string AelfScanTokenInfoApi = "api/app/token/info";
+    public const string AelfScanTokenListApi = "api/app/token/list";
     public const string AelfScanNftDetailApi = "api/app/token/nft/item-detail";
     
     

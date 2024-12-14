@@ -25,49 +25,44 @@ namespace EoaServer.UserAssets;
 [DisableAuditing]
 public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
 {
-    private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aelfScanOptions;
     private readonly TokenListOptions _tokenListOptions;
     private readonly SeedImageOptions _seedImageOptions;
     private readonly IImageProcessProvider _imageProcessProvider;
     private readonly IpfsOptions _ipfsOptions;
-    private readonly ITokenInfoAppService _tokenInfoAppService;
+    private readonly ITokenInfoProvider _tokenInfoProvider;
     private readonly NftItemDisplayOption _nftItemDisplayOption;
     private readonly ChainOptions _chainOptions;
     private readonly ILogger<UserAssetsAppService> _logger;
+    private readonly IAElfScanDataProvider _aelfScanDataProvider;
 
-    public UserAssetsAppService(IHttpClientProvider httpClientProvider,
-        IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
+    public UserAssetsAppService(
         IOptionsSnapshot<TokenListOptions> tokenListOptions,
         IOptionsSnapshot<SeedImageOptions> seedImageOptions,
         IImageProcessProvider imageProcessProvider,
         IOptionsSnapshot<IpfsOptions> ipfsOption,
         IOptionsSnapshot<ChainOptions> chainOptions,
-        ITokenInfoAppService tokenInfoAppService,
+        ITokenInfoProvider tokenInfoProvider,
         ILogger<UserAssetsAppService> logger,
-        IOptionsSnapshot<NftItemDisplayOption> nftItemDisplayOptions)
+        IOptionsSnapshot<NftItemDisplayOption> nftItemDisplayOptions,
+        IAElfScanDataProvider aelfScanDataProvider)
     {
-        _httpClientProvider = httpClientProvider;
-        _aelfScanOptions = aElfScanOptions.Value;
         _tokenListOptions = tokenListOptions.Value;
         _seedImageOptions = seedImageOptions.Value;
         _imageProcessProvider = imageProcessProvider;
         _ipfsOptions = ipfsOption.Value;
-        _tokenInfoAppService = tokenInfoAppService;
+        _tokenInfoProvider = tokenInfoProvider;
         _chainOptions = chainOptions.Value;
         _logger = logger;
         _nftItemDisplayOption = nftItemDisplayOptions.Value;
+        _aelfScanDataProvider = aelfScanDataProvider;
     }
     
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
     {
         var tokenList = new GetAddressTokenListResultDto();
-        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTokenAssetsApi;
-
         foreach (var addressInfo in requestDto.AddressInfos)
         {
-            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount=0&MaxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
-            var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressTokenListResultDto>(requestUrl);
+            var chainTokenList = await _aelfScanDataProvider.GetAddressTokenAssetsAsync(addressInfo.ChainId, addressInfo.Address);
             tokenList.AssetInUsd += chainTokenList.AssetInUsd;
             tokenList.AssetInElf += chainTokenList.AssetInElf;
             tokenList.Total += chainTokenList.Total;
@@ -106,13 +101,11 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     {
         var result = new GetNftCollectionsDto();
         var nftList = new GetAddressNftListResultDto();
-        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
+        
 
         foreach (var addressInfo in requestDto.AddressInfos)
         {
-            // get all NFT for TotalNftItemCount
-            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount=0&maxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
-            var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressNftListResultDto>(requestUrl);
+            var chainTokenList = await _aelfScanDataProvider.GetAddressNftListAsync(addressInfo.ChainId, addressInfo.Address);
             if (chainTokenList != null)
             {
                 nftList.Total += chainTokenList.Total;
@@ -120,7 +113,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
             }
             else
             {
-                _logger.LogError($"Get Nft list result is null. request: {requestUrl}");
+                _logger.LogError($"Get Nft list result is null. chainId: {addressInfo.ChainId}, address: {addressInfo.Address}");
             }
         }
         
@@ -176,7 +169,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         
         var mapTasks = nftItems.Select(async nftItem =>
         {
-            return await _tokenInfoAppService.GetIndexerTokenInfoAsync(nftItem.ChainIds[0], nftItem.Token.Symbol);
+            return await _aelfScanDataProvider.GetIndexerTokenInfoAsync(nftItem.ChainIds[0], nftItem.Token.Symbol);
         }).ToList();
 
         var tokenList = await Task.WhenAll(mapTasks);
@@ -412,22 +405,19 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     private async Task<List<AddressNftInfoDto>> GetUserCollectionItemsAsync(List<AddressInfo> addressInfos, string symbol)
     {
         var nftList = new List<AddressNftInfoDto>();
-        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
 
         foreach (var addressInfo in addressInfos)
         {
             // get all NFT for TotalNftItemCount
-            var requestUrl = $"{url}?address={addressInfo.Address}&chainId={addressInfo.ChainId}&skipCount=0&maxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
-            var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressNftListResultDto>(requestUrl);
+            var chainTokenList = await _aelfScanDataProvider.GetAddressNftListAsync(addressInfo.ChainId, addressInfo.Address);
             if (chainTokenList != null)
             {
                 nftList.AddRange(chainTokenList.List);
             }
             else
             {
-                _logger.LogError($"Get Nft list result is null. request: {requestUrl}");
+                _logger.LogError($"Get Nft list result is null. chainId: {addressInfo.ChainId}, address: {addressInfo.Address}");
             }
-            
         }
 
         return nftList.Where(t => t.NftCollection.Symbol == symbol).ToList();
