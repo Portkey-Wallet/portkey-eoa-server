@@ -47,5 +47,8 @@ public class EoaServerApplicationModule : AbpModule
         Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
         Configure<NftItemDisplayOption>(configuration.GetSection("NftItemDisplay"));
         Configure<NftToFtOptions>(configuration.GetSection("NftToFt"));
+        Configure<ETransferOptions>(configuration.GetSection("ETransfer"));
+        Configure<DepositOptions>(configuration.GetSection("Deposit"));
+
     }
 }
