@@ -44,6 +44,8 @@ public class EoaServerApplicationModule : AbpModule
         Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfo"));
         Configure<SeedImageOptions>(configuration.GetSection("SeedSymbolImage"));
         Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
+        Configure<ETransferOptions>(configuration.GetSection("ETransfer"));
+        Configure<DepositOptions>(configuration.GetSection("Deposit"));
 
     }
 }
