@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,11 +8,13 @@ using EoaServer.Entities.Es;
 using EoaServer.Options;
 using EoaServer.Token.Dto;
 using EoaServer.Token.Request;
+using EoaServer.Token.TokenPrice;
 using EoaServer.UserAssets.Provider;
 using EoaServer.UserToken;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
 using Volo.Abp.Users;
 
@@ -30,6 +33,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
     private readonly IUserTokenProvider _userTokenProvider;
     private readonly NftToFtOptions _nftToFtOptions;
     private readonly TokenListOptions _tokenListOptions;
+    private readonly ITokenPriceService _tokenPriceService;
 
     public TokenAppService(ILogger<TokenAppService> logger,
         IOptionsSnapshot<ActivityOptions> activityOptions,
@@ -39,7 +43,8 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         IAElfScanDataProvider aelfScanDataProvider,
         IUserTokenProvider userTokenProvider,
         IOptionsSnapshot<NftToFtOptions> nftToFtOptions,
-        IOptionsSnapshot<TokenListOptions> tokenListOptions)
+        IOptionsSnapshot<TokenListOptions> tokenListOptions,
+        ITokenPriceService tokenPriceService)
     {
         _logger = logger;
         _activityOptions = activityOptions.Value;
@@ -48,11 +53,11 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         _tokenInfoProvider = tokenInfoProvider;
         _aelfScanDataProvider = aelfScanDataProvider;
         _userTokenProvider = userTokenProvider;
+        _tokenPriceService = tokenPriceService;
         _nftToFtOptions = nftToFtOptions.Value;
         _tokenListOptions = tokenListOptions.Value;
-
     }
-    
+
     private void AddDefaultTokens(List<UserTokenIndex> tokens, string keyword)
     {
         var userTokens = _tokenListOptions.UserToken;
@@ -74,7 +79,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
             tokens.Add(ObjectMapper.Map<UserTokenItem, UserTokenIndex>(item));
         }
     }
-    
+
     private List<GetTokenListDto> Convert(List<TokenCommonDto> tokenInfos, List<UserTokenIndex> userTokenInfos)
     {
         var result = new List<GetTokenListDto>();
@@ -92,7 +97,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
             };
             tokenList.Add(tokenDto);
         }
-        
+
         var userTokens = ObjectMapper.Map<List<UserTokenIndex>, List<GetTokenListDto>>(userTokenInfos);
         if (tokenList.Count > 0)
         {
@@ -117,7 +122,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
 
         return result;
     }
-    
+
     public async Task<List<GetTokenListDto>> GetTokenListAsync(GetTokenListRequestDto input)
     {
         var indexerTokens = new List<TokenCommonDto>();
@@ -127,16 +132,16 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
                 await _aelfScanDataProvider.GetTokenListAsync(chainId, input.Symbol);
             indexerTokens.AddRange(chainIndexerToken.List);
         }
-        
+
         var userTokensDto = await _userTokenProvider.GetUserTokenInfoListAsync(
-            CurrentUser.GetId(), 
-            input.ChainIds.Count == 1 ? input.ChainIds.First() : string.Empty, 
+            CurrentUser.GetId(),
+            input.ChainIds.Count == 1 ? input.ChainIds.First() : string.Empty,
             string.Empty);
-        
+
         AddDefaultTokens(userTokensDto, input.Symbol);
         userTokensDto = userTokensDto?.Where(t => t.Token.Symbol.Contains(input.Symbol.Trim().ToUpper())).ToList();
 
-        
+
         var tokenInfoList = Convert(indexerTokens, userTokensDto);
 
         // Check and adjust SkipCount and MaxResultCount
@@ -164,5 +169,26 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         }
 
         return tokenInfoList;
+    }
+
+    public async Task<ListResultDto<TokenPriceDataDto>> GetTokenPriceListAsync(List<string> symbols)
+    {
+        var result = new List<TokenPriceDataDto>();
+        if (symbols.Count == 0)
+        {
+            return new ListResultDto<TokenPriceDataDto>();
+        }
+
+        var symbolList = symbols.Distinct(StringComparer.InvariantCultureIgnoreCase).ToList();
+        foreach (var symbol in symbolList)
+        {
+            var priceResult = await _tokenPriceService.GetCurrentPriceAsync(symbol);
+            result.Add(priceResult);
+        }
+
+        return new ListResultDto<TokenPriceDataDto>
+        {
+            Items = result
+        };
     }
 }

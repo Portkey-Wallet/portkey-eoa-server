@@ -17,6 +17,7 @@ using Volo.Abp.AutoMapper;
 using Volo.Abp.EventBus;
 using Volo.Abp.Modularity;
 using TokenInfoDto = EoaServer.UserAssets.Dtos.TokenInfoDto;
+using ChainInfo = EoaServer.Options.ChainInfo;
 
 namespace EoaServer;
 
@@ -36,11 +37,11 @@ public class EoaServerApplicationTestModule : AbpModule
         context.Services.AddSingleton<IUserActivityAppService, UserActivityAppService>();
         context.Services.AddSingleton<IUserTokenAppService, UserTokenAppService>();
         context.Services.AddSingleton<ITokenAppService, TokenAppService>();
-        
+
         base.ConfigureServices(context);
-        
+
         MockData(context);
-        
+
         Configure<ActivityOptions>(options =>
         {
             options.ContractConfigs = new List<ContractConfig>()
@@ -56,7 +57,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 NotUnknownContracts = new List<string>()
             };
         });
-        
+
         Configure<TokenSpenderOptions>(options =>
         {
             options.TokenSpenderList = new List<TokenSpender>()
@@ -71,10 +72,10 @@ public class EoaServerApplicationTestModule : AbpModule
                 }
             };
         });
-        
+
         Configure<ChainOptions>(options =>
         {
-            options.ChainInfos = new Dictionary<string, ChainInfo>()
+            options.ChainInfos = new Dictionary<string, EoaServer.Options.ChainInfo>()
             {
                 {
                     EoaServerApplicationTestConstant.ChainIdAELF, new ChainInfo()
@@ -95,21 +96,12 @@ public class EoaServerApplicationTestModule : AbpModule
             };
         });
 
-        Configure<AElfScanOptions>(options =>
-        {
-            options.BaseUrl = "mockAElfScanUrl";
-        });
-        
-        Configure<SeedImageOptions>(options =>
-        {
-            options.SeedImageDic = new Dictionary<string, string>();
-        });
-        
-        Configure<NftItemDisplayOption>(options =>
-        {
-            options.RecommendedRefreshSeconds = 30;
-        });
-        
+        Configure<AElfScanOptions>(options => { options.BaseUrl = "mockAElfScanUrl"; });
+
+        Configure<SeedImageOptions>(options => { options.SeedImageDic = new Dictionary<string, string>(); });
+
+        Configure<NftItemDisplayOption>(options => { options.RecommendedRefreshSeconds = 30; });
+
         var tokenList = new List<UserTokenItem>();
         tokenList.Add(new UserTokenItem
         {
@@ -163,22 +155,18 @@ public class EoaServerApplicationTestModule : AbpModule
                 Symbol = "ETH"
             }
         });
-        
-        Configure<TokenListOptions>(options =>
-        {
-            options.UserToken = tokenList;
-        });
+
+        Configure<TokenListOptions>(options => { options.UserToken = tokenList; });
     }
-    
+
     private void MockData(ServiceConfigurationContext context)
     {
-        
         var mockHttpProvider = new Mock<IHttpClientProvider>();
         MockTokenInfoData(mockHttpProvider);
         MockTransactionData(mockHttpProvider);
         MockAssetsData(mockHttpProvider);
         MockNftAssetsData(mockHttpProvider);
-        
+
         context.Services.AddSingleton<IHttpClientProvider>(mockHttpProvider.Object);
     }
 
@@ -239,7 +227,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<GetAddressTokenListResultDto>(
             It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTokenAssetsApi) &&
@@ -272,7 +260,7 @@ public class EoaServerApplicationTestModule : AbpModule
             }
         });
     }
-    
+
     private void MockAssetsData(Mock<IHttpClientProvider> mockHttpProvider)
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<GetAddressTokenListResultDto>(
@@ -326,7 +314,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<GetAddressTokenListResultDto>(
             It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTokenAssetsApi) &&
@@ -363,9 +351,10 @@ public class EoaServerApplicationTestModule : AbpModule
     private void MockTransactionData(Mock<IHttpClientProvider> mockHttpProvider)
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionsResponseDto>(
-            It.Is<string>(url => 
+            It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTransactionsApi) &&
-                url.Contains($"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
+                url.Contains(
+                    $"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
         )).ReturnsAsync(new TransactionsResponseDto
         {
             Transactions = new List<TransactionResponseDto>()
@@ -373,16 +362,17 @@ public class EoaServerApplicationTestModule : AbpModule
                 new TransactionResponseDto()
                 {
                     TransactionId = "0x1",
-                    ChainIds = new List<string>(){EoaServerApplicationTestConstant.ChainIdTDVW},
+                    ChainIds = new List<string>() { EoaServerApplicationTestConstant.ChainIdTDVW },
                     Timestamp = 1
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<GetTransferListResultDto>(
-            It.Is<string>(url => 
+            It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTransfersApi) &&
-                url.Contains($"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&tokenType=0&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
+                url.Contains(
+                    $"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&tokenType=0&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
         )).ReturnsAsync(new GetTransferListResultDto
         {
             List = new List<TokenTransferInfoDto>()
@@ -390,22 +380,23 @@ public class EoaServerApplicationTestModule : AbpModule
                 new TokenTransferInfoDto()
                 {
                     TransactionId = "0x1",
-                    ChainIds = new List<string>(){EoaServerApplicationTestConstant.ChainIdTDVW},
+                    ChainIds = new List<string>() { EoaServerApplicationTestConstant.ChainIdTDVW },
                     BlockTime = 1
                 },
                 new TokenTransferInfoDto()
                 {
                     TransactionId = "0x2",
-                    ChainIds = new List<string>(){EoaServerApplicationTestConstant.ChainIdTDVW},
+                    ChainIds = new List<string>() { EoaServerApplicationTestConstant.ChainIdTDVW },
                     BlockTime = 2
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<GetTransferListResultDto>(
-            It.Is<string>(url => 
+            It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTransfersApi) &&
-                url.Contains($"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&tokenType=1&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
+                url.Contains(
+                    $"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&tokenType=1&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
         )).ReturnsAsync(new GetTransferListResultDto
         {
             List = new List<TokenTransferInfoDto>()
@@ -413,12 +404,12 @@ public class EoaServerApplicationTestModule : AbpModule
                 new TokenTransferInfoDto()
                 {
                     TransactionId = "0x3",
-                    ChainIds = new List<string>(){EoaServerApplicationTestConstant.ChainIdTDVW},
+                    ChainIds = new List<string>() { EoaServerApplicationTestConstant.ChainIdTDVW },
                     BlockTime = 3
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionDetailResponseDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTransactionDetailApi}?TransactionId=0x1&ChainId={EoaServerApplicationTestConstant.ChainIdTDVW}"
         )).ReturnsAsync(new TransactionDetailResponseDto
@@ -491,7 +482,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionDetailResponseDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTransactionDetailApi}?TransactionId=0x2&ChainId={EoaServerApplicationTestConstant.ChainIdTDVW}"
         )).ReturnsAsync(new TransactionDetailResponseDto
@@ -533,7 +524,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 }
             }
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionDetailResponseDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTransactionDetailApi}?TransactionId=0x3&ChainId={EoaServerApplicationTestConstant.ChainIdTDVW}"
         )).ReturnsAsync(new TransactionDetailResponseDto
@@ -575,9 +566,8 @@ public class EoaServerApplicationTestModule : AbpModule
                 }
             }
         });
-        
     }
-    
+
     private void MockTokenInfoData(Mock<IHttpClientProvider> mockHttpProvider)
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
@@ -587,7 +577,7 @@ public class EoaServerApplicationTestModule : AbpModule
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenElfSymbol
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=SGR&ChainId=tDVW"
         )).ReturnsAsync(new IndexerTokenInfoDto
@@ -595,7 +585,7 @@ public class EoaServerApplicationTestModule : AbpModule
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=SGR&ChainId=AELF"
         )).ReturnsAsync(new IndexerTokenInfoDto
@@ -603,7 +593,7 @@ public class EoaServerApplicationTestModule : AbpModule
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=BBB-2&ChainId=tDVW"
         )).ReturnsAsync(new IndexerTokenInfoDto
@@ -614,7 +604,7 @@ public class EoaServerApplicationTestModule : AbpModule
             Supply = 123,
             TotalSupply = 234
         });
-        
+
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=BBB-1&ChainId=tDVW"
         )).ReturnsAsync(new IndexerTokenInfoDto

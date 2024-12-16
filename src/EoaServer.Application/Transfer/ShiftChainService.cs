@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using EoaServer.Common;
 using EoaServer.Commons;
 using EoaServer.Options;
+using EoaServer.Token;
 using EoaServer.Transfer.Dtos;
 using EoaServer.Transfer.Provider;
 using EoaServer.Transfer.Proxy;
@@ -27,14 +28,14 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
     private readonly IHttpClientService _httpClientService;
     private readonly ETransferOptions _eTransferOptions;
     private readonly INetworkCacheProvider _networkCacheProvider;
-    private readonly TransferAppService _transferAppService;
+    private readonly ITransferAppService _transferAppService;
     private readonly ILogger<ShiftChainService> _logger;
 
     public ShiftChainService(IETransferProxyService eTransferProxyService,
         IOptionsSnapshot<ChainOptions> chainOptions, ITokenAppService tokenAppService,
         IHttpClientService httpClientService,
         IOptionsSnapshot<ETransferOptions> eTransferOptions, INetworkCacheProvider networkCacheProvider,
-        TransferAppService transferAppService,
+        ITransferAppService transferAppService,
         ILogger<ShiftChainService> logger)
     {
         _eTransferProxyService = eTransferProxyService;

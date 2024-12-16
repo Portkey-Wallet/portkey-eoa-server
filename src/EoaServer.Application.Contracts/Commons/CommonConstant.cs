@@ -12,10 +12,7 @@ public static class CommonConstant
     public const string SuccessCode = "20000";
     
     public const string ProtocolName = "http";
-    
-    public const string ELF = "ELF";
-    public const string USDT = "USDT";
-    
+
     public const string MainChainId = "AELF";
     public const string TDVVChainId = "tDVV";
     public const string TDVWChainId = "tDVW";
@@ -44,6 +41,10 @@ public static class CommonConstant
     public const string ELF = "ELF";
     public const string USD = "USD";
     public const string USDT = "USDT";
+    public const string SgrCoingeckoId = "schrodinger-2";
+    public const string SgrSymbol = "SGR";
+    public const string SgrSymbolName = "SGR-1";
+    public const string SgrCollectionSymbol = "SGR-0";
     public const string ChainName = "aelf";
     public const string BaseNetwork = "BASE";
     public const string BaseNetworkName = "Base";
