@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Caching;
+using Volo.Abp.DependencyInjection;
 
 namespace EoaServer.Token;
 
@@ -17,9 +18,11 @@ namespace EoaServer.Token;
 public interface ITokenInfoProvider
 {
     Task<TokenInfoDto> GetAsync(string chainId, string symbol);
+    string BuildSymbolImageUrl(string symbol);
+    string GetTokenId(string chainId, string symbol);
 }
 
-public class TokenInfoProvider : EoaServerBaseService, ITokenInfoProvider
+public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
 {
     private readonly IDistributedCache<TokenInfoDto> _tokenInfoCache;
     private readonly IHttpClientProvider _httpClientProvider;
@@ -46,7 +49,12 @@ public class TokenInfoProvider : EoaServerBaseService, ITokenInfoProvider
         _chainOptions = chainOptions.Value;
     }
 
-    private string GetTokenImage(string symbol)
+    public string GetTokenId(string chainId, string symbol)
+    {
+        return $"{chainId}-{symbol}";
+    }
+    
+    public string BuildSymbolImageUrl(string symbol)
     {
         if (symbol.IsNullOrWhiteSpace() || _tokenInfoOptions?.TokenInfos == null)
         {
@@ -89,7 +97,7 @@ public class TokenInfoProvider : EoaServerBaseService, ITokenInfoProvider
             Symbol = tokenInfoResult.Symbol,
             Decimals = tokenInfoResult.Decimals,
             ChainId = tokenInfoResult.IssueChainId,
-            ImageUri = GetTokenImage(tokenInfoResult.Symbol),
+            ImageUri = BuildSymbolImageUrl(tokenInfoResult.Symbol),
             TokenName = tokenInfoResult.TokenName,
             Address = _chainOptions.ChainInfos[chainId].TokenContractAddress
         };

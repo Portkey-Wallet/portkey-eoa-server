@@ -38,7 +38,7 @@ public class EoaServerDomainTestModule : AbpModule
             options.NumberOfReplicas = 1;
             options.NumberOfShards = 1;
             options.Refresh = Refresh.True;
-            options.IndexPrefix = "IMTest";
+            options.IndexPrefix = "eoaservertest";
         });
     }
     
@@ -52,15 +52,8 @@ public class EoaServerDomainTestModule : AbpModule
             var types = GetTypesAssignableFrom<IIndexBuild>(m.Assembly);
             foreach (var t in types)
             {
-                try
-                {
-                    AsyncHelper.RunSync(async () =>
-                        await elasticIndexService.DeleteIndexAsync("IMtest." + t.Name.ToLower()));
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+                AsyncHelper.RunSync(async () =>
+                    await elasticIndexService.DeleteIndexAsync("eoaservertest." + t.Name.ToLower()));
             }
         });
     }

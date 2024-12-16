@@ -31,54 +31,28 @@ namespace EoaServer.UserToken;
 [DisableAuditing]
 public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
 {
-    private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aelfScanOptions;
     private readonly TokenListOptions _tokenListOptions;
-    private readonly SeedImageOptions _seedImageOptions;
-    private readonly IImageProcessProvider _imageProcessProvider;
-    private readonly IpfsOptions _ipfsOptions;
     private readonly ITokenInfoProvider _tokenInfoProvider;
-    private readonly NftItemDisplayOption _nftItemDisplayOption;
-    private readonly ChainOptions _chainOptions;
     private readonly ILogger<UserTokenAppService> _logger;
-    private readonly IAElfScanDataProvider _aelfScanDataProvider;
     private readonly IUserTokenProvider _userTokenProvider;
-    private readonly IAssetsLibraryProvider _assetsLibraryProvider;
     private readonly NftToFtOptions _nftToFtOptions;
     private readonly IClusterClient _clusterClient;
     private readonly IDistributedEventBus _distributedEventBus;
 
-    public UserTokenAppService(IHttpClientProvider httpClientProvider,
-        IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
+    public UserTokenAppService(
         IOptionsSnapshot<TokenListOptions> tokenListOptions,
-        IOptionsSnapshot<SeedImageOptions> seedImageOptions,
-        IImageProcessProvider imageProcessProvider,
-        IOptionsSnapshot<IpfsOptions> ipfsOption,
-        IOptionsSnapshot<ChainOptions> chainOptions,
         ITokenInfoProvider tokenInfoProvider,
         ILogger<UserTokenAppService> logger,
-        IOptionsSnapshot<NftItemDisplayOption> nftItemDisplayOptions,
-        IAElfScanDataProvider aelfScanDataProvider,
         IUserTokenProvider userTokenProvider,
-        IAssetsLibraryProvider assetsLibraryProvider,
         IOptionsSnapshot<NftToFtOptions> nftToFtOptions,
         IClusterClient clusterClient,
         IDistributedEventBus distributedEventBus)
     {
-        _httpClientProvider = httpClientProvider;
-        _aelfScanOptions = aElfScanOptions.Value;
         _tokenListOptions = tokenListOptions.Value;
-        _seedImageOptions = seedImageOptions.Value;
-        _imageProcessProvider = imageProcessProvider;
-        _ipfsOptions = ipfsOption.Value;
         _tokenInfoProvider = tokenInfoProvider;
-        _chainOptions = chainOptions.Value;
         _logger = logger;
-        _nftItemDisplayOption = nftItemDisplayOptions.Value;
-        _aelfScanDataProvider = aelfScanDataProvider;
         _userTokenProvider = userTokenProvider;
         _nftToFtOptions = nftToFtOptions.Value;
-        _assetsLibraryProvider = assetsLibraryProvider;
         _clusterClient = clusterClient;
         _distributedEventBus = distributedEventBus;
     }
@@ -97,6 +71,11 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
         if (!userTokenGrainResultDto.Success())
         {
             var tokenInfo = await _tokenInfoProvider.GetAsync(chainId, symbol);
+            if (tokenInfo == null)
+            {
+                _logger.LogError($"can't get token info, chain: {chainId}, symbol: {symbol}");
+                return;
+            }
             var addResult = await grain.AddAsync(userId, new UserTokenGrainDto
             {
                 UserId = userId,
@@ -129,7 +108,23 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
         // hide source tokens.
         userTokens.RemoveAll(t => sourceSymbols.Contains(t.Token.Symbol) && !t.IsDisplay);
 
-        var tokens = ObjectMapper.Map<List<UserTokenIndex>, List<GetUserTokenDto>>(userTokens);
+        var tokens = new List<GetUserTokenDto>();
+        foreach (var userToken in userTokens)
+        {
+            var getUserTokenDto = new GetUserTokenDto
+            {
+                ChainId = userToken.Token.ChainId,
+                Id = userToken.Token.Id,
+                Symbol = userToken.Token.Symbol,
+                ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(userToken.Token.Symbol),
+                Address = userToken.Token.Address,
+                Decimals = userToken.Token.Decimals,
+                IsDefault = userToken.IsDefault,
+                IsDisplay = userToken.IsDisplay
+            };
+            tokens.Add(getUserTokenDto);
+        }
+        
         foreach (var item in _tokenListOptions.UserToken)
         {
             var token = tokens.FirstOrDefault(t =>
@@ -139,7 +134,17 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
                 continue;
             }
 
-            tokens.Add(ObjectMapper.Map<UserTokenItem, GetUserTokenDto>(item));
+            tokens.Add(new GetUserTokenDto()
+            {
+                ChainId = item.Token.ChainId,
+                Id = _tokenInfoProvider.GetTokenId(item.Token.ChainId, item.Token.Symbol),
+                Symbol = item.Token.Symbol,
+                ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(item.Token.Symbol),
+                Address = item.Token.Address,
+                Decimals = item.Token.Decimals,
+                IsDefault = item.IsDefault,
+                IsDisplay = item.IsDisplay
+            });
         }
 
         if (!string.IsNullOrEmpty(requestDto.Keyword))
@@ -161,13 +166,11 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
                 token.ImageUrl = nftToFtInfo.ImageUrl;
                 continue;
             }
-
-            token.ImageUrl = _assetsLibraryProvider.buildSymbolImageUrl(token.Symbol);
+            token.ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(token.Symbol);
         }
 
         var defaultSymbols = _tokenListOptions.UserToken.Select(t => t.Token.Symbol).Distinct().ToList();
         tokens = tokens.OrderBy(t => t.Symbol != CommonConstant.ELF)
-            //.ThenBy(t => !t.IsDisplay)
             .ThenBy(t => !defaultSymbols.Contains(t.Symbol))
             .ThenBy(t => sourceSymbols.Contains(t.Symbol))
             .ThenBy(t => Array.IndexOf(defaultSymbols.ToArray(), t.Symbol))

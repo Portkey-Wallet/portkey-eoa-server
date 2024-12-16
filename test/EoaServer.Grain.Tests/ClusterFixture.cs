@@ -54,7 +54,7 @@ public class ClusterFixture : IDisposable, ISingletonDependency
 
                     services.AddMemoryCache();
                     services.AddDistributedMemoryCache();
-                    services.AddAutoMapper(typeof(EoaServerGrainTestModule).Assembly);
+                    services.AddAutoMapper(typeof(EoaServerGrainsModule).Assembly);
 
                     services.AddSingleton(typeof(DistributedCache<>));
                     services.AddSingleton(typeof(IDistributedCache<>), typeof(DistributedCache<>));

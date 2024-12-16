@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using EoaServer.Common;
 using EoaServer.Commons;
+using EoaServer.EntityEventHandler.Core;
 using EoaServer.Grain.Tests;
 using EoaServer.Options;
+using EoaServer.Token;
 using EoaServer.Token.Dto;
 using EoaServer.UserActivity;
 using EoaServer.UserActivity.Dto;
 using EoaServer.UserAssets.Dtos;
+using EoaServer.UserToken;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Newtonsoft.Json;
@@ -21,7 +24,8 @@ namespace EoaServer;
     typeof(EoaServerApplicationModule),
     typeof(AbpEventBusModule),
     typeof(EoaServerGrainTestModule),
-    typeof(EoaServerDomainTestModule)
+    typeof(EoaServerDomainTestModule),
+    typeof(EoaServerEntityEventHandlerCoreModule)
 )]
 public class EoaServerApplicationTestModule : AbpModule
 {
@@ -29,6 +33,9 @@ public class EoaServerApplicationTestModule : AbpModule
     {
         // context.Services.AddSingleton(sp => sp.GetService<ClusterFixture>().Cluster.Client);
         Configure<AbpAutoMapperOptions>(options => { options.AddMaps<EoaServerApplicationModule>(); });
+        context.Services.AddSingleton<IUserActivityAppService, UserActivityAppService>();
+        context.Services.AddSingleton<IUserTokenAppService, UserTokenAppService>();
+        context.Services.AddSingleton<ITokenAppService, TokenAppService>();
         
         base.ConfigureServices(context);
         
@@ -161,8 +168,6 @@ public class EoaServerApplicationTestModule : AbpModule
         {
             options.UserToken = tokenList;
         });
-        
-        context.Services.AddSingleton<IUserActivityAppService, UserActivityAppService>();
     }
     
     private void MockData(ServiceConfigurationContext context)
@@ -577,11 +582,26 @@ public class EoaServerApplicationTestModule : AbpModule
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=ELF&ChainId=tDVW"
-            
         )).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenElfSymbol
+        });
+        
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
+            $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=SGR&ChainId=tDVW"
+        )).ReturnsAsync(new IndexerTokenInfoDto
+        {
+            Decimals = 8,
+            Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
+        });
+        
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
+            $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=SGR&ChainId=AELF"
+        )).ReturnsAsync(new IndexerTokenInfoDto
+        {
+            Decimals = 8,
+            Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
         });
         
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(

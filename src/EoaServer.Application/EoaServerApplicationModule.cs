@@ -1,4 +1,5 @@
-﻿using EoaServer.Options;
+﻿using EoaServer.Common;
+using EoaServer.Options;
 using EoaServer.Redis;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Account;

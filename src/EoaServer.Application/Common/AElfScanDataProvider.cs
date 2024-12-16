@@ -10,10 +10,11 @@ using EoaServer.UserAssets.Provider;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.DependencyInjection;
 
 namespace EoaServer.Common;
 
-public class AElfScanDataProvider : IAElfScanDataProvider
+public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
 {
     private readonly IHttpClientProvider _httpClientProvider;
     private readonly AElfScanOptions _aelfScanOptions;

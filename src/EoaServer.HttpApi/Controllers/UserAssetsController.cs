@@ -14,7 +14,7 @@ namespace EoaServer.Controllers;
 [Area("app")]
 [ControllerName("UserAssets")]
 [Route("api/app/user/assets")]
-// [Authorize]
+[Authorize]
 public class UserAssetsController : EoaServerBaseController
 {
     private readonly IUserAssetsAppService _userAssetsAppService;

@@ -10,12 +10,14 @@ using EoaServer.Token.Dto;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using EoaServer.UserAssets.Provider;
+using EoaServer.UserToken;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
+using Volo.Abp.Users;
 using TokenInfoDto = EoaServer.UserAssets.Dtos.TokenInfoDto;
 
 namespace EoaServer.UserAssets;
@@ -34,6 +36,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     private readonly ChainOptions _chainOptions;
     private readonly ILogger<UserAssetsAppService> _logger;
     private readonly IAElfScanDataProvider _aelfScanDataProvider;
+    private readonly IUserTokenProvider _userTokenProvider;
 
     public UserAssetsAppService(
         IOptionsSnapshot<TokenListOptions> tokenListOptions,
@@ -44,7 +47,8 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         ITokenInfoProvider tokenInfoProvider,
         ILogger<UserAssetsAppService> logger,
         IOptionsSnapshot<NftItemDisplayOption> nftItemDisplayOptions,
-        IAElfScanDataProvider aelfScanDataProvider)
+        IAElfScanDataProvider aelfScanDataProvider,
+        IUserTokenProvider userTokenProvider)
     {
         _tokenListOptions = tokenListOptions.Value;
         _seedImageOptions = seedImageOptions.Value;
@@ -55,6 +59,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         _logger = logger;
         _nftItemDisplayOption = nftItemDisplayOptions.Value;
         _aelfScanDataProvider = aelfScanDataProvider;
+        _userTokenProvider = userTokenProvider;
     }
     
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
@@ -70,6 +75,8 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         }
         
         AddDefaultTokens(tokenList);
+        
+        await AddUserTokensAsync(tokenList);
         
         var result = await ConvertDtoAsync(tokenList, requestDto);
         
@@ -522,7 +529,37 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         
         return result;
     }
+
+    private async Task AddUserTokensAsync(GetAddressTokenListResultDto tokensResultDto)
+    {
+        var userId = CurrentUser.GetId();
+        var userTokens =
+            await _userTokenProvider.GetUserTokenInfoListAsync(userId, string.Empty, string.Empty);
+        foreach (var userToken in userTokens)
+        {
+            var resultToken = tokensResultDto.List.FirstOrDefault(t =>
+                t.Token.Symbol == userToken.Token.Symbol && t.ChainIds[0] == userToken.Token.ChainId);
+            if (resultToken == null)
+            {
+                tokensResultDto.List.Add(new TokenInfoDto
+                {
+                    Token = new TokenBaseInfo()
+                    {
+                        Decimals = userToken.Token.Decimals,
+                        Symbol = userToken.Token.Symbol,
+                        ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(userToken.Token.Symbol)
+                    },
+                    ChainIds = new List<string>()
+                    {
+                        userToken.Token.ChainId
+                    },
+                    Type = SymbolType.Token
+                });
+            }
+        }
+    }
     
+
     private void AddDefaultTokens(GetAddressTokenListResultDto tokensResultDto)
     {
         foreach (var item in _tokenListOptions.UserToken)
@@ -539,7 +576,8 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 Token = new TokenBaseInfo
                 {
                     Symbol = item.Token.Symbol,
-                    Decimals = item.Token.Decimals
+                    Decimals = item.Token.Decimals,
+                    ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(item.Token.Symbol)
                 },
                 ChainIds = new List<string>()
                 {

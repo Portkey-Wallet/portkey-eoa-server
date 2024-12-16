@@ -28,7 +28,6 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
     private readonly ITokenInfoProvider _tokenInfoProvider;
     private readonly IAElfScanDataProvider _aelfScanDataProvider;
     private readonly IUserTokenProvider _userTokenProvider;
-    private readonly IAssetsLibraryProvider _assetsLibraryProvider;
     private readonly NftToFtOptions _nftToFtOptions;
     private readonly TokenListOptions _tokenListOptions;
 
@@ -39,7 +38,6 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         ITokenInfoProvider tokenInfoProvider,
         IAElfScanDataProvider aelfScanDataProvider,
         IUserTokenProvider userTokenProvider,
-        IAssetsLibraryProvider assetsLibraryProvider,
         IOptionsSnapshot<NftToFtOptions> nftToFtOptions,
         IOptionsSnapshot<TokenListOptions> tokenListOptions)
     {
@@ -51,7 +49,6 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         _aelfScanDataProvider = aelfScanDataProvider;
         _userTokenProvider = userTokenProvider;
         _nftToFtOptions = nftToFtOptions.Value;
-        _assetsLibraryProvider = assetsLibraryProvider;
         _tokenListOptions = tokenListOptions.Value;
 
     }
@@ -87,7 +84,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
             var tokenDto = new GetTokenListDto
             {
                 ChainId = tokenCommonDto.ChainIds[0],
-                Id = $"{tokenCommonDto.ChainIds[0]}-{tokenCommonDto.Token.Symbol}",
+                Id = _tokenInfoProvider.GetTokenId(tokenCommonDto.ChainIds[0], tokenCommonDto.Token.Symbol),
                 Symbol = tokenCommonDto.Token.Symbol,
                 Decimals = tokenCommonDto.Token.Decimals,
                 TokenName = tokenCommonDto.Token.Name,
@@ -153,7 +150,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         tokenInfoList = tokenInfoList.Skip(skipCount).Take(maxResultCount).ToList();
         foreach (var token in tokenInfoList)
         {
-            token.ImageUrl = _assetsLibraryProvider.buildSymbolImageUrl(token.Symbol);
+            token.ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(token.Symbol);
         }
 
         foreach (var nffItem in tokenInfoList.Where(t => _nftToFtOptions.NftToFtInfos.Keys.Contains(t.Symbol)))
