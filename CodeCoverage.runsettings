@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- File name extension must be .runsettings -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>      
+       <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[xunit.*]*,[*Tests]*</Exclude> <!-- [Assembly-Filter]Type-Filter -->
+          <ExcludeByFile>**/test/**/*.cs,**/src/EoaServer.Domain/**/*.cs,**/src/EoaServer.Domain.Shared/**/*.cs,**/src/EoaServer.EntityEventHandler.Core/**/*.cs,**/src/EoaServer.EntityEventHandler/**/*.cs,**/src/EoaServer.Application.Contracts/**/*.cs,**/src/EoaServer.HttpApi*/**/*.cs,**/src/EoaServer.Worker/**/*.cs,**/src/EoaServer.DbMigrator/**/*.cs,**/src/EoaServer.MongoDB/**/*.cs,**/src/**/*.c.cs,**/src/**/*.g.cs</ExcludeByFile>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute</ExcludeByAttribute>
+          <SingleHit>false</SingleHit>
+        </Configuration>
+      </DataCollector>    
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

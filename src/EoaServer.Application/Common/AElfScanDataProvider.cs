@@ -77,11 +77,13 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return response;
     }
     
-    public async Task<GetTransferListResultDto> GetAddressTransfersAsync(string chainId, string address, int tokenType, int skipCount, int maxResultCount)
+    public async Task<GetTransferListResultDto> GetAddressTransfersAsync(string chainId, string address, int tokenType,
+        int skipCount, int maxResultCount, string symbol)
     {
         var baseUrl = _aelfScanOptions.BaseUrl;
         var nftTransfersUrl = $"{baseUrl}/{CommonConstant.AelfScanUserTransfersApi}?";
-        nftTransfersUrl += chainId != null ? $"chainId={chainId}&" : "";
+        nftTransfersUrl += !string.IsNullOrEmpty(chainId) ? $"chainId={chainId}&" : "";
+        nftTransfersUrl += !string.IsNullOrEmpty(symbol) ? $"symbol={symbol}&" : "";
         nftTransfersUrl += $"tokenType={tokenType}&" +
                            $"address={address}&" +
                            $"skipCount={skipCount}&" +

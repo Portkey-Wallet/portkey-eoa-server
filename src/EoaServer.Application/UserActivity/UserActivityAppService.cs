@@ -68,18 +68,27 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     {
         var address = request.AddressInfos[0].Address;
         var chainId = request.AddressInfos.Count == 1 ? request.AddressInfos[0].ChainId : null;
-        
-        var txnsTask = _aelfScanDataProvider.GetAddressTransactionsAsync(chainId, address, 0, request.SkipCount + request.MaxResultCount);
-        var tokenTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount);
-        var nftTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 1, 0, request.SkipCount + request.MaxResultCount);
 
-        await Task.WhenAll(txnsTask, tokenTransfersTask, nftTransfersTask);
+        var txns = new TransactionsResponseDto();
+        var tokenTransfers = new GetTransferListResultDto();
+        if (string.IsNullOrEmpty(request.Symbol))
+        {
+            var txnsTask = _aelfScanDataProvider.GetAddressTransactionsAsync(chainId, address, 0, request.SkipCount + request.MaxResultCount);
+            var tokenTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount, null);
+            var nftTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 1, 0, request.SkipCount + request.MaxResultCount, null);
 
-        var txns = await txnsTask;
-        var tokenTransfers = await tokenTransfersTask;
-        var nftTransfers = await nftTransfersTask;
+            await Task.WhenAll(txnsTask, tokenTransfersTask, nftTransfersTask);
 
-        tokenTransfers.List.AddRange(nftTransfers.List);
+            txns = await txnsTask;
+            tokenTransfers = await tokenTransfersTask;
+            var nftTransfers = await nftTransfersTask;
+
+            tokenTransfers.List.AddRange(nftTransfers.List);
+        }
+        else
+        {
+            tokenTransfers = await _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount, request.Symbol);
+        }
         
         foreach (var transfer in tokenTransfers.List)
         {
