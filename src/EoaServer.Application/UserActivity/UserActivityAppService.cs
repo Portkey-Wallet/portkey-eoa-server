@@ -11,6 +11,7 @@ using EoaServer.UserActivity.Dto;
 using EoaServer.UserActivity.Dtos;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
+using EoaServer.UserAssets.Provider;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -33,12 +34,14 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     private readonly ChainOptions _chainOptions;
     private readonly ITokenInfoProvider _tokenInfoProvider;
     private readonly IAElfScanDataProvider _aelfScanDataProvider;
+    private readonly IImageProcessProvider _imageProcessProvider;
 
     public UserActivityAppService(ILogger<UserActivityAppService> logger,
         IOptionsSnapshot<ActivityOptions> activityOptions,
         IOptionsSnapshot<TokenSpenderOptions> tokenSpenderOptions,
         IOptionsSnapshot<ChainOptions> chainOptions,
         ITokenInfoProvider tokenInfoProvider,
+        IImageProcessProvider imageProcessProvider,
         IAElfScanDataProvider aelfScanDataProvider)
     {
         _logger = logger;
@@ -47,7 +50,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         _chainOptions = chainOptions.Value;
         _tokenInfoProvider = tokenInfoProvider;
         _aelfScanDataProvider = aelfScanDataProvider;
-
+        _imageProcessProvider = imageProcessProvider;
     }
     
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
@@ -61,7 +64,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         }
 
         var tokenMap = await GetTokenMapAsync(txnDto.List);
-        return await ConvertDtoAsync(request.ChainId, txnDto.List[0], tokenMap);
+        return await ConvertDtoAsync(request.ChainId, txnDto.List[0], tokenMap, 0, 0);
     }
     
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request)
@@ -130,7 +133,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         var activityDtos = new List<GetActivityDto>();
         foreach (var txnDetail in txnDetails)
         {
-            activityDtos.Add(await ConvertDtoAsync(txnChainMap[txnDetail.TransactionId], txnDetail, tokenMap));
+            activityDtos.Add(await ConvertDtoAsync(txnChainMap[txnDetail.TransactionId], txnDetail, tokenMap, request.Width, request.Height));
         }
         
         return new GetActivitiesDto()
@@ -245,7 +248,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         activityDto.DappIcon = tokenSpender.Icon;
     }
 
-    private async Task<GetActivityDto> ConvertDtoAsync(string chainId, TransactionDetailDto dto, Dictionary<string, TokenInfoDto> tokenMap)
+    private async Task<GetActivityDto> ConvertDtoAsync(string chainId, TransactionDetailDto dto, Dictionary<string, TokenInfoDto> tokenMap, int width, int height)
     {
         var activityDto = new GetActivityDto
         {
@@ -340,7 +343,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
 
                     var nftInfo = new NftDetail()
                     {
-                        ImageUrl = nftsTransferred.ImageUrl,
+                        ImageUrl = await _imageProcessProvider.GetResizeImageAsync(
+                            nftsTransferred.ImageUrl, width, height,
+                            ImageResizeType.Forest),
                         Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
                         NftId = nftsTransferred.Symbol.Split("-").Last(),
                         IsSeed = isSeed,
@@ -375,7 +380,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
 
                     var nftInfo = new NftDetail()
                     {
-                        ImageUrl = nftsTransferred.ImageUrl,
+                        ImageUrl = await _imageProcessProvider.GetResizeImageAsync(
+                            nftsTransferred.ImageUrl, width, height,
+                            ImageResizeType.Forest),
                         Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
                         NftId = nftsTransferred.Symbol.Split("-").Last(),
                         IsSeed = isSeed,

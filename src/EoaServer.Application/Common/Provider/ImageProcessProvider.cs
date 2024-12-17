@@ -13,6 +13,11 @@ using Volo.Abp.DependencyInjection;
 
 namespace EoaServer.UserAssets.Provider;
 
+public interface IImageProcessProvider
+{
+    Task<string> GetResizeImageAsync(string imageUrl, int width, int height, ImageResizeType type);
+}
+
 public class ImageProcessProvider : IImageProcessProvider, ISingletonDependency
 {
     private readonly ILogger<ImageProcessProvider> _logger;
