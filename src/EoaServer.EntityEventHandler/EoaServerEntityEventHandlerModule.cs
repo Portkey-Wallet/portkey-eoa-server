@@ -4,6 +4,7 @@ using Medallion.Threading;
 using Medallion.Threading.Redis;
 using EoaServer.EntityEventHandler.Core;
 using EoaServer.MongoDb;
+using EoaServer.Options;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,7 @@ public class EoaServerEntityEventHandlerModule : AbpModule
         ConfigureCache(configuration);
         ConfigureEsIndexCreation();
         ConfigureDistributedLocking(context, configuration);
+        Configure<TokenPriceWorkerOption>(configuration.GetSection("TokenPriceWorker"));
     }
 
     private void ConfigureDistributedLocking(

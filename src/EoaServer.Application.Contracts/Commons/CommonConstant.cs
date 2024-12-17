@@ -12,18 +12,12 @@ public static class CommonConstant
     public const string SuccessCode = "20000";
     
     public const string ProtocolName = "http";
-    
-    public const string ELF = "ELF";
-    public const string USDT = "USDT";
-    
+
     public const string MainChainId = "AELF";
     public const string TDVVChainId = "tDVV";
     public const string TDVWChainId = "tDVW";
     public static List<string> ChainIds = new List<string> { MainChainId, TDVWChainId, TDVVChainId };
 
-    public const string PortkeyS3Mark = "did";
-    public const string ImS3Mark = "im";
-    
     public const string AelfScanUserTokenAssetsApi = "api/app/address/tokens";
     public const string AelfScanUserNFTAssetsApi = "api/app/address/nft-assets";
     public const string AelfScanUserTransactionsApi = "api/app/blockchain/transactions";
@@ -32,7 +26,27 @@ public static class CommonConstant
     public const string AelfScanTokenInfoApi = "api/app/token/info";
     public const string AelfScanTokenListApi = "api/app/token/list";
     public const string AelfScanNftDetailApi = "api/app/token/nft/item-detail";
-    
+    public const string PortkeyS3Mark = "did";
+    public const string ImS3Mark = "im";
     
     public const string TokenInfoCachePrefix = "TokenInfoCachePrefix";
+    
+    
+    public const string EmptyString = "";
+    public const string Dot = ".";
+    public const string Hyphen = "-";
+    public const string Colon = ":";
+    public const string Underline = "_";
+    public const string Comma = ",";
+    public const string ELF = "ELF";
+    public const string USD = "USD";
+    public const string USDT = "USDT";
+    public const string SgrCoingeckoId = "schrodinger-2";
+    public const string SgrSymbol = "SGR";
+    public const string SgrSymbolName = "SGR-1";
+    public const string SgrCollectionSymbol = "SGR-0";
+    public const string ChainName = "aelf";
+    public const string BaseNetwork = "BASE";
+    public const string BaseNetworkName = "Base";
+    public const string VersionName = "Version";
 }
