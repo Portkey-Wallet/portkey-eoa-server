@@ -3,7 +3,8 @@ using Volo.Abp.Modularity;
 
 namespace EoaServer.EntityEventHandler.Core
 {
-    [DependsOn(typeof(AbpAutoMapperModule), typeof(EoaServerApplicationModule),
+    [DependsOn(typeof(AbpAutoMapperModule), 
+        typeof(EoaServerApplicationModule),
         typeof(EoaServerApplicationContractsModule))]
     public class EoaServerEntityEventHandlerCoreModule : AbpModule
     {

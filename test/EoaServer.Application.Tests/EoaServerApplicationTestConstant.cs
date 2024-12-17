@@ -12,6 +12,7 @@ public class EoaServerApplicationTestConstant
     
     public const string TokenElfSymbol = "ELF";
     public const string TokenElfIcon = "ELF_ImageUrl";
+    public const int TokenElfDecimal = 8;
     
     public const string TokenSgrSymbol = "SGR";
     public const string TokenSgrIcon = "SGR_ImageUrl";

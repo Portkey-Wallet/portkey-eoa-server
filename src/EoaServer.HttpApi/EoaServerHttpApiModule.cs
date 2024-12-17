@@ -1,7 +1,7 @@
 ﻿using EoaServer.Localization;
 using Localization.Resources.AbpUi;
 using Volo.Abp.Account;
-using Volo.Abp.EventBus.RabbitMq;
+using Volo.Abp.EventBus.Kafka;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
 using Volo.Abp.Localization;
@@ -20,7 +20,7 @@ namespace EoaServer;
     typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpFeatureManagementHttpApiModule),
     typeof(AbpSettingManagementHttpApiModule),
-    typeof(AbpEventBusRabbitMqModule)
+    typeof(AbpEventBusKafkaModule)
     )]
 public class EoaServerHttpApiModule : AbpModule
 {

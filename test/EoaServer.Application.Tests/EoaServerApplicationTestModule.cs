@@ -162,6 +162,7 @@ public class EoaServerApplicationTestModule : AbpModule
     private void MockData(ServiceConfigurationContext context)
     {
         var mockHttpProvider = new Mock<IHttpClientProvider>();
+        MockTokenListData(mockHttpProvider);
         MockTokenInfoData(mockHttpProvider);
         MockTransactionData(mockHttpProvider);
         MockAssetsData(mockHttpProvider);
@@ -568,6 +569,35 @@ public class EoaServerApplicationTestModule : AbpModule
         });
     }
 
+    private void MockTokenListData(Mock<IHttpClientProvider> mockHttpProvider)
+    {
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<ListResponseDto<TokenCommonDto>>(
+            It.Is<string>(url =>
+                url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenListApi) &&
+                url.Contains(
+                    $"{url}?chainId=tDVW&fuzzySearch=el&skipCount=0"))
+        )).ReturnsAsync(new ListResponseDto<TokenCommonDto>
+        {
+            Total = 1,
+            List = new List<TokenCommonDto>()
+            {
+                new TokenCommonDto()
+                {
+                    ChainIds = new List<string>()
+                    {
+                        "tDVW"
+                    },
+                    Token = new TokenBaseInfo
+                    {
+                        Symbol = EoaServerApplicationTestConstant.TokenElfSymbol,
+                        ImageUrl = EoaServerApplicationTestConstant.TokenElfIcon,
+                        Decimals = EoaServerApplicationTestConstant.TokenElfDecimal
+                    }
+                }
+            }
+        });
+    }
+    
     private void MockTokenInfoData(Mock<IHttpClientProvider> mockHttpProvider)
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(

@@ -33,7 +33,7 @@ public class TokenAppServiceTest : EoaServerApplicationTestBase
     }
 
     [Fact]
-    public async Task ChangeTokenDisplayAsyncTest()
+    public async Task GetTokenListAsyncTest()
     {
         var result = await _tokenAppService.GetTokenListAsync(new GetTokenListRequestDto
         {
@@ -45,6 +45,9 @@ public class TokenAppServiceTest : EoaServerApplicationTestBase
             }
         });
         result.Count.ShouldBe(2);
-        
+        result[0].Symbol.ShouldBe("ELF");
+        result[0].ChainId.ShouldBe("AELF");
+        result[1].Symbol.ShouldBe("ELF");
+        result[1].ChainId.ShouldBe("tDVW");
     }
 }

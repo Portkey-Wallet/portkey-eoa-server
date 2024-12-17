@@ -28,7 +28,7 @@ using Volo.Abp.BackgroundJobs;
 using Volo.Abp.Caching;
 using Volo.Abp.Caching.StackExchangeRedis;
 using Volo.Abp.DistributedLocking;
-using Volo.Abp.EventBus.RabbitMq;
+using Volo.Abp.EventBus.Kafka;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.OpenIddict.ExtensionGrantTypes;
@@ -50,7 +50,7 @@ namespace EoaServer;
     typeof(EoaServerMongoDbModule),
     typeof(EoaServerDomainModule),
     typeof(AbpAspNetCoreSerilogModule),
-    typeof(AbpEventBusRabbitMqModule)
+    typeof(AbpEventBusKafkaModule)
     //typeof(AOPExceptionModule)
 )]
 public class EoaServerAuthServerModule : AbpModule

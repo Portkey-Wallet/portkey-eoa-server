@@ -98,7 +98,21 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
             tokenList.Add(tokenDto);
         }
 
-        var userTokens = ObjectMapper.Map<List<UserTokenIndex>, List<GetTokenListDto>>(userTokenInfos);
+        var userTokens = new List<GetTokenListDto>();
+        foreach (var userTokenIndex in userTokenInfos)
+        {
+            userTokens.Add(new GetTokenListDto
+            {
+                ChainId = userTokenIndex.Token.ChainId,
+                Id = _tokenInfoProvider.GetTokenId(userTokenIndex.Token.ChainId, userTokenIndex.Token.Symbol),
+                Symbol = userTokenIndex.Token.Symbol,
+                ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(userTokenIndex.Token.Symbol),
+                Decimals = userTokenIndex.Token.Decimals,
+                IsDefault = userTokenIndex.IsDefault,
+                IsDisplay = userTokenIndex.IsDisplay
+            });
+        }
+        
         if (tokenList.Count > 0)
         {
             tokenList.RemoveAll(t =>
@@ -130,7 +144,10 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         {
             var chainIndexerToken =
                 await _aelfScanDataProvider.GetTokenListAsync(chainId, input.Symbol);
-            indexerTokens.AddRange(chainIndexerToken.List);
+            if (chainIndexerToken != null)
+            {
+                indexerTokens.AddRange(chainIndexerToken.List);
+            }
         }
 
         var userTokensDto = await _userTokenProvider.GetUserTokenInfoListAsync(
