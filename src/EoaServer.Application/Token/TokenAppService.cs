@@ -157,7 +157,7 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
 
         AddDefaultTokens(userTokensDto, input.Symbol);
         userTokensDto = userTokensDto?.Where(t => t.Token.Symbol.Contains(input.Symbol.Trim().ToUpper())).ToList();
-
+        userTokensDto = userTokensDto?.Where(t => input.ChainIds.Contains(t.Token.ChainId)).ToList();
 
         var tokenInfoList = Convert(indexerTokens, userTokensDto);
 

@@ -32,7 +32,7 @@ public class UserTokenController : EoaServerBaseController
     [HttpPut]
     [Route("{id}/display")]
     [Authorize]
-    public async Task ChangeTokenDisplayAsync(string id, [FromBody] IsTokenDisplayInput input)
+    public async Task ChangeTokenDisplayAsync(string id, IsTokenDisplayInput input)
     {
         await _userTokenAppService.ChangeTokenDisplayAsync(id, input.IsDisplay);
     }

@@ -14,8 +14,8 @@ public class EoaServerApplicationTestConstant
     public const string TokenElfIcon = "ELF_ImageUrl";
     public const int TokenElfDecimal = 8;
     
-    public const string TokenSgrSymbol = "SGR";
-    public const string TokenSgrIcon = "SGR_ImageUrl";
+    public const string TokenSgrSymbol = "SGR-1";
+    public const string TokenSgrIcon = "SGR-1_ImageUrl";
     
     public const string NftBBBCollectionSymbol = "BBB-0";
     public const string NftBBBCollectionTokenName = "xxx0";

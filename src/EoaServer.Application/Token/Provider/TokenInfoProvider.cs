@@ -25,28 +25,25 @@ public interface ITokenInfoProvider
 public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
 {
     private readonly IDistributedCache<TokenInfoDto> _tokenInfoCache;
-    private readonly IHttpClientProvider _httpClientProvider;
-    private readonly AElfScanOptions _aelfScanOptions;
     private readonly TokenInfoOptions _tokenInfoOptions;
     private readonly AssetsInfoOptions _assetsInfoOptions;
     private readonly ILogger<TokenInfoProvider> _logger;
     private readonly ChainOptions _chainOptions;
-
+    private readonly IAElfScanDataProvider _aelfScanDataProvider;
+    
     public TokenInfoProvider(IDistributedCache<TokenInfoDto> tokenCache,
-        IHttpClientProvider httpClientProvider,
-        IOptionsSnapshot<AElfScanOptions> aElfScanOptions,
         IOptionsSnapshot<TokenInfoOptions> tokenInfoOptions,
         IOptionsSnapshot<AssetsInfoOptions> assetsInfoOptions,
         ILogger<TokenInfoProvider> logger,
-        IOptionsSnapshot<ChainOptions> chainOptions)
+        IOptionsSnapshot<ChainOptions> chainOptions,
+        IAElfScanDataProvider aelfScanDataProvider)
     {
         _tokenInfoCache = tokenCache;
-        _httpClientProvider = httpClientProvider;
-        _aelfScanOptions = aElfScanOptions.Value;
         _tokenInfoOptions = tokenInfoOptions.Value;
         _assetsInfoOptions = assetsInfoOptions.Value;
         _logger = logger;
         _chainOptions = chainOptions.Value;
+        _aelfScanDataProvider = aelfScanDataProvider;
     }
 
     public string GetTokenId(string chainId, string symbol)
@@ -83,9 +80,7 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
             return tokenInfo;
         }
         
-        var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
-        var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
-        var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
+        var tokenInfoResult = await _aelfScanDataProvider.GetIndexerTokenInfoAsync(chainId, symbol);
 
         if (tokenInfoResult == null)
         {

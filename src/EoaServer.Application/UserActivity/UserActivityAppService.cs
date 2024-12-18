@@ -286,121 +286,61 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         foreach (var tokenTransferred in dto.TokenTransferreds)
         {
-            if (tokenTransferred.From.Address == dto.From.Address)
+            var isReceived = tokenTransferred.To.Address == dto.From.Address;
+            var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol && t.IsReceived == isReceived);
+            if (symbolInfo == null)
             {
-                var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol && t.IsReceived == false);
-                if (symbolInfo == null)
+                activityDto.Operations.Add(new OperationItemInfo()
                 {
-                    activityDto.Operations.Add(new OperationItemInfo()
-                    {
-                        IsReceived = false,
-                        Symbol = tokenTransferred.Symbol,
-                        Amount = tokenTransferred.Amount.ToString(),
-                        Icon = tokenTransferred.ImageUrl,
-                        Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString()
-                    });
-                }
-                else
-                {
-                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + tokenTransferred.Amount).ToString();
-                }
-            } 
-            else if (tokenTransferred.To.Address == dto.From.Address)
+                    IsReceived = isReceived,
+                    Symbol = tokenTransferred.Symbol,
+                    Amount = tokenTransferred.Amount.ToString(),
+                    Icon = tokenTransferred.ImageUrl,
+                    Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString()
+                });
+            }
+            else
             {
-                var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol && t.IsReceived);
-                if (symbolInfo == null)
-                {
-                    activityDto.Operations.Add(new OperationItemInfo()
-                    {
-                        IsReceived = true,
-                        Symbol = tokenTransferred.Symbol,
-                        Amount = tokenTransferred.Amount.ToString(),
-                        Icon = tokenTransferred.ImageUrl,
-                        Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString()
-                    });
-                }
-                else
-                {
-                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + tokenTransferred.Amount).ToString();
-                }
-            } 
+                symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + tokenTransferred.Amount).ToString();
+            }
+            
         }
         
         foreach (var nftsTransferred in dto.NftsTransferreds)
         {
-            if (nftsTransferred.From.Address == dto.From.Address)
+            var isReceived = nftsTransferred.To.Address == dto.From.Address;
+            var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == nftsTransferred.Symbol && t.IsReceived == isReceived);
+            if (symbolInfo == null)
             {
-                var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == nftsTransferred.Symbol && t.IsReceived == false);
-                if (symbolInfo == null)
+                var isSeed = false;
+                int seedType = 0;
+                if (nftsTransferred.Symbol.StartsWith(TokensConstants.SeedNamePrefix))
                 {
-                    var isSeed = false;
-                    int seedType = 0;
-                    if (nftsTransferred.Symbol.StartsWith(TokensConstants.SeedNamePrefix))
-                    {
-                        isSeed = true;
-                        seedType = (int)SeedType.FT;
-                    }
-
-                    var nftInfo = new NftDetail()
-                    {
-                        ImageUrl = await _imageProcessProvider.GetResizeImageAsync(
-                            nftsTransferred.ImageUrl, width, height,
-                            ImageResizeType.Forest),
-                        Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
-                        NftId = nftsTransferred.Symbol.Split("-").Last(),
-                        IsSeed = isSeed,
-                        SeedType = seedType
-                    };
-                    activityDto.Operations.Add(new OperationItemInfo()
-                    {
-                        IsReceived = false,
-                        Symbol = nftsTransferred.Symbol,
-                        Amount = nftsTransferred.Amount.ToString(),
-                        NftInfo = nftInfo
-                    });
-                    activityDto.NftInfo = nftInfo;
+                    isSeed = true;
+                    seedType = (int)SeedType.FT;
                 }
-                else
+                var nftInfo = new NftDetail()
                 {
-                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + nftsTransferred.Amount).ToString();
-                }
-            } 
-            else if (nftsTransferred.To.Address == dto.From.Address)
+                    ImageUrl = await _imageProcessProvider.GetResizeImageAsync(
+                        nftsTransferred.ImageUrl, width, height,
+                        ImageResizeType.Forest),
+                    Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
+                    NftId = nftsTransferred.Symbol.Split("-").Last(),
+                    IsSeed = isSeed,
+                    SeedType = seedType
+                };
+                activityDto.Operations.Add(new OperationItemInfo()
+                {
+                    IsReceived = isReceived,
+                    Symbol = nftsTransferred.Symbol,
+                    Amount = nftsTransferred.Amount.ToString(),
+                    NftInfo = nftInfo
+                });
+                activityDto.NftInfo = nftInfo;
+            }
+            else
             {
-                var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == nftsTransferred.Symbol && t.IsReceived);
-                if (symbolInfo == null)
-                {
-                    var isSeed = false;
-                    int seedType = 0;
-                    if (nftsTransferred.Symbol.StartsWith(TokensConstants.SeedNamePrefix))
-                    {
-                        isSeed = true;
-                        seedType = (int)SeedType.FT;
-                    }
-
-                    var nftInfo = new NftDetail()
-                    {
-                        ImageUrl = await _imageProcessProvider.GetResizeImageAsync(
-                            nftsTransferred.ImageUrl, width, height,
-                            ImageResizeType.Forest),
-                        Alias = tokenMap[nftsTransferred.Symbol]?.TokenName,
-                        NftId = nftsTransferred.Symbol.Split("-").Last(),
-                        IsSeed = isSeed,
-                        SeedType = seedType
-                    };
-                    activityDto.Operations.Add(new OperationItemInfo()
-                    {
-                        IsReceived = true,
-                        Symbol = nftsTransferred.Symbol,
-                        Amount = nftsTransferred.Amount.ToString(),
-                        NftInfo = nftInfo
-                    });
-                    activityDto.NftInfo = nftInfo;
-                }
-                else
-                {
-                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + nftsTransferred.Amount).ToString();
-                }
+                symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + nftsTransferred.Amount).ToString();
             }
         }
 

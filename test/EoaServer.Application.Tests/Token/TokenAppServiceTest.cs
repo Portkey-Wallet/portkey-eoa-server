@@ -49,5 +49,22 @@ public class TokenAppServiceTest : EoaServerApplicationTestBase
         result[0].ChainId.ShouldBe("AELF");
         result[1].Symbol.ShouldBe("ELF");
         result[1].ChainId.ShouldBe("tDVW");
+        
+        result = await _tokenAppService.GetTokenListAsync(new GetTokenListRequestDto
+        {
+            Symbol = "sg",
+            ChainIds = new List<string>()
+            {
+                "tDVW",
+                "AELF"
+            }
+        });
+        result.Count.ShouldBe(2);
+        result[0].Symbol.ShouldBe("SGR-1");
+        result[0].Label.ShouldBe("SGR");
+        result[0].ChainId.ShouldBe("AELF");
+        result[1].Symbol.ShouldBe("SGR-1");
+        result[1].Label.ShouldBe("SGR");
+        result[1].ChainId.ShouldBe("tDVW");
     }
 }

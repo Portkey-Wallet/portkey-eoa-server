@@ -57,13 +57,14 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
         _distributedEventBus = distributedEventBus;
     }
     
+    private (string chainId, string symbol) GetTokenInfoFromId(string tokenId)
+    {
+        return (tokenId[..tokenId.IndexOf('-')], tokenId.Substring(tokenId.IndexOf('-') + 1));
+    }
+    
     public async Task ChangeTokenDisplayAsync(string id, bool isDisplay)
     {
-        var (chainId, symbol) = id.Split('-') switch
-        {
-            var parts when parts.Length == 2 => (parts[0], parts[1]),
-            _ => (string.Empty, string.Empty)
-        };
+        var (chainId, symbol) = GetTokenInfoFromId(id);
         var userId = CurrentUser.GetId();
         var grainId = GrainIdHelper.GenerateGrainId(id, userId);
         var grain = _clusterClient.GetGrain<IUserTokenGrain>(grainId);

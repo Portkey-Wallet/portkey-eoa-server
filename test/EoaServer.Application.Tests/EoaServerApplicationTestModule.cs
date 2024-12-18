@@ -102,66 +102,139 @@ public class EoaServerApplicationTestModule : AbpModule
 
         Configure<NftItemDisplayOption>(options => { options.RecommendedRefreshSeconds = 30; });
 
-        var tokenList = new List<UserTokenItem>();
-        tokenList.Add(new UserTokenItem
+        Configure<TokenListOptions>(options =>
         {
-            IsDefault = true,
-            IsDisplay = true,
-            SortWeight = 1,
-            Token = new Options.Token
+            options.UserToken = new List<UserTokenItem>()
             {
-                ChainId = EoaServerApplicationTestConstant.ChainIdAELF,
-                Address = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
-                Decimals = 8,
-                Symbol = "ELF"
-            }
+                new UserTokenItem
+                {
+                    IsDefault = true,
+                    IsDisplay = true,
+                    SortWeight = 1,
+                    Token = new Options.Token
+                    {
+                        ChainId = EoaServerApplicationTestConstant.ChainIdAELF,
+                        Address = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
+                        Decimals = 8,
+                        Symbol = "ELF"
+                    }
+                },
+                new UserTokenItem
+                {
+                    IsDefault = true,
+                    IsDisplay = true,
+                    SortWeight = 1,
+                    Token = new Options.Token
+                    {
+                        ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                        Address = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx",
+                        Decimals = 8,
+                        Symbol = "ELF"
+                    }
+                },
+                new UserTokenItem
+                {
+                    IsDefault = false,
+                    IsDisplay = true,
+                    SortWeight = 1,
+                    Token = new Options.Token
+                    {
+                        ChainId = EoaServerApplicationTestConstant.ChainIdAELF,
+                        Address = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
+                        Decimals = 8,
+                        Symbol = "ETH"
+                    }
+                },
+                new UserTokenItem
+                {
+                    IsDefault = false,
+                    IsDisplay = true,
+                    SortWeight = 1,
+                    Token = new Options.Token
+                    {
+                        ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                        Address = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx",
+                        Decimals = 8,
+                        Symbol = "ETH"
+                    }
+                },
+                new UserTokenItem
+                {
+                    IsDefault = false,
+                    IsDisplay = true,
+                    SortWeight = 1,
+                    Token = new Options.Token
+                    {
+                        ChainId = EoaServerApplicationTestConstant.ChainIdAELF,
+                        Address = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
+                        Decimals = 8,
+                        Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
+                    }
+                },
+                new UserTokenItem
+                {
+                    IsDefault = false,
+                    IsDisplay = true,
+                    SortWeight = 1,
+                    Token = new Options.Token
+                    {
+                        ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                        Address = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx",
+                        Decimals = 8,
+                        Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
+                    }
+                }
+            };
+            options.SourceToken = new List<UserTokenItem>()
+            {
+                new UserTokenItem
+                {
+                    IsDefault = false,
+                    IsDisplay = false,
+                    SortWeight = 0,
+                    Token = new Options.Token
+                    {
+                        ChainId = "tDVW",
+                        Address = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx",
+                        Symbol = "CPU",
+                        Decimals = 8
+                    }
+                },
+                new UserTokenItem
+                {
+                    IsDefault = false,
+                    IsDisplay = false,
+                    SortWeight = 0,
+                    Token = new Options.Token
+                    {
+                        ChainId = "AELF",
+                        Address = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
+                        Symbol = "CPU",
+                        Decimals = 8
+                    }
+                }
+            };
         });
-        tokenList.Add(new UserTokenItem
+        
+        Configure<NftToFtOptions>(options =>
         {
-            IsDefault = false,
-            IsDisplay = false,
-            SortWeight = 1,
-            Token = new Options.Token
+            options.NftToFtInfos = new Dictionary<string, NftToFtInfo>()
             {
-                ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
-                Address = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx",
-                Decimals = 8,
-                Symbol = "ELF"
-            }
+                {
+                    "SGR-1", new NftToFtInfo
+                    {
+                        Label = "SGR",
+                        ImageUrl = "https://image.schrodingernft.ai/ipfs/QmUagFPoGyNvAJMy7ditDuX7hbqYmJfCmhXzHEjrGEiKku"
+                    }
+                }
+            };
         });
-        tokenList.Add(new UserTokenItem
-        {
-            IsDefault = true,
-            IsDisplay = true,
-            SortWeight = 1,
-            Token = new Options.Token
-            {
-                ChainId = EoaServerApplicationTestConstant.ChainIdAELF,
-                Address = "JRmBduh4nXWi1aXgdUsj5gJrzeZb2LxmrAbf7W99faZSvoAaE",
-                Decimals = 8,
-                Symbol = "ETH"
-            }
-        });
-        tokenList.Add(new UserTokenItem
-        {
-            IsDefault = false,
-            IsDisplay = false,
-            SortWeight = 1,
-            Token = new Options.Token
-            {
-                ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
-                Address = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx",
-                Decimals = 8,
-                Symbol = "ETH"
-            }
-        });
-
-        Configure<TokenListOptions>(options => { options.UserToken = tokenList; });
     }
 
     private void MockData(ServiceConfigurationContext context)
     {
         var mockHttpProvider = new Mock<IHttpClientProvider>();
+        
         MockTokenListData(mockHttpProvider);
         MockTokenInfoData(mockHttpProvider);
         MockTransactionData(mockHttpProvider);
@@ -575,7 +648,7 @@ public class EoaServerApplicationTestModule : AbpModule
             It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenListApi) &&
                 url.Contains(
-                    $"{url}?chainId=tDVW&fuzzySearch=el&skipCount=0"))
+                    $"chainId=tDVW&fuzzySearch=el&skipCount=0"))
         )).ReturnsAsync(new ListResponseDto<TokenCommonDto>
         {
             Total = 1,
@@ -601,29 +674,27 @@ public class EoaServerApplicationTestModule : AbpModule
     private void MockTokenInfoData(Mock<IHttpClientProvider> mockHttpProvider)
     {
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
-            $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=ELF&ChainId=tDVW"
+            It.Is<string>(url =>
+                url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
+                url.Contains(
+                    $"Symbol=ELF"))
         )).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenElfSymbol
         });
-
+        
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
-            $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=SGR&ChainId=tDVW"
+            It.Is<string>(url =>
+                url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
+                url.Contains(
+                    $"Symbol={EoaServerApplicationTestConstant.TokenSgrSymbol}"))
         )).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
         });
-
-        mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
-            $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=SGR&ChainId=AELF"
-        )).ReturnsAsync(new IndexerTokenInfoDto
-        {
-            Decimals = 8,
-            Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
-        });
-
+        
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=BBB-2&ChainId=tDVW"
         )).ReturnsAsync(new IndexerTokenInfoDto
