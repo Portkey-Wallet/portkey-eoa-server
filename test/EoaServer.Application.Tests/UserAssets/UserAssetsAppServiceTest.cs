@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using DeviceDetectorNET;
+using EoaServer.Security;
+using EoaServer.UserToken;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
+using Volo.Abp.Users;
 using Xunit;
 
 namespace EoaServer.UserAssets;
@@ -10,10 +14,20 @@ namespace EoaServer.UserAssets;
 public class UserAssetsAppServiceTest : EoaServerApplicationTestBase
 {
     private readonly IUserAssetsAppService _userAssetsAppService;
+    private readonly IUserTokenAppService _userTokenAppService;
+    protected ICurrentUser _currentUser;
 
     public UserAssetsAppServiceTest()
     {
         _userAssetsAppService = GetRequiredService<IUserAssetsAppService>();
+        _userTokenAppService = GetRequiredService<IUserTokenAppService>();
+    }
+    
+    protected override void AfterAddApplication(IServiceCollection services)
+    {
+        base.AfterAddApplication(services);
+        _currentUser = new CurrentUser(new FakeCurrentPrincipalAccessor());
+        services.AddSingleton(_currentUser);
     }
 
     [Fact]
@@ -193,5 +207,38 @@ public class UserAssetsAppServiceTest : EoaServerApplicationTestBase
             SkipCount = 1
         });
         result.Data.Count.ShouldBe(1);
+    }
+    
+    
+    [Fact]
+    public async void GetUserTokenAsyncTest()
+    {
+        await _userTokenAppService.ChangeTokenDisplayAsync("tDVW-USDC", true);
+        await _userTokenAppService.ChangeTokenDisplayAsync("AELF-USDC", true);
+        
+        var result = await _userAssetsAppService.GetTokenAsync(new GetTokenRequestDto()
+        {
+            AddressInfos = new List<AddressInfo>()
+            {
+                new AddressInfo()
+                {
+                    Address = EoaServerApplicationTestConstant.User1Address,
+                    ChainId = EoaServerApplicationTestConstant.ChainIdTDVW
+                },
+                new AddressInfo()
+                {
+                    Address = EoaServerApplicationTestConstant.User1Address,
+                    ChainId = EoaServerApplicationTestConstant.ChainIdAELF
+                }
+            }
+        });
+        
+        result.TotalRecordCount.ShouldBe(4);
+        // default show
+        result.Data[2].Symbol.ShouldBe("ETH");
+        result.Data[2].Tokens.Count.ShouldBe(2);
+        // user token
+        result.Data[3].Symbol.ShouldBe("USDC");
+        result.Data[3].Tokens.Count.ShouldBe(2);
     }
 }

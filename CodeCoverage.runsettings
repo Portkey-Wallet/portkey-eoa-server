@@ -7,7 +7,7 @@
         <Configuration>
           <Format>cobertura</Format>
           <Exclude>[xunit.*]*,[*Tests]*</Exclude> <!-- [Assembly-Filter]Type-Filter -->
-          <ExcludeByFile>**/test/**/*.cs,**/src/EoaServer.Domain/**/*.cs,**/src/EoaServer.Domain.Shared/**/*.cs,**/src/EoaServer.EntityEventHandler.Core/**/*.cs,**/src/EoaServer.EntityEventHandler/**/*.cs,**/src/EoaServer.Application.Contracts/**/*.cs,**/src/EoaServer.HttpApi*/**/*.cs,**/src/EoaServer.Worker/**/*.cs,**/src/EoaServer.DbMigrator/**/*.cs,**/src/EoaServer.MongoDB/**/*.cs,**/src/**/*.c.cs,**/src/**/*.g.cs</ExcludeByFile>
+          <ExcludeByFile>**/test/**/*.cs,**/src/EoaServer.Domain/**/*.cs,**/src/EoaServer.Domain.Shared/**/*.cs,**/src/EoaServer.EntityEventHandler.Core/**/*.cs,**/src/EoaServer.EntityEventHandler/**/*.cs,**/src/EoaServer.Application.Contracts/**/*.cs,**/src/EoaServer.Application/Common/Provider/HttpClientProvider.cs,**/src/EoaServer.Application/Common/Provider/ImageProcessProvider.cs,**/src/EoaServer.Application/Common/HttpClientService.cs,**/src/EoaServer.Application/Common/ConfigurationProvidersHelper.cs,**/src/EoaServer.Application/Common/LogHelper.cs,**/src/EoaServer.HttpApi*/**/*.cs,**/src/EoaServer.Worker/**/*.cs,**/src/EoaServer.DbMigrator/**/*.cs,**/src/EoaServer.MongoDB/**/*.cs,**/src/**/*.c.cs,**/src/**/*.g.cs</ExcludeByFile>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute</ExcludeByAttribute>
           <SingleHit>false</SingleHit>
         </Configuration>

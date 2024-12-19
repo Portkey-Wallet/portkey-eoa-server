@@ -677,7 +677,7 @@ public class EoaServerApplicationTestModule : AbpModule
             It.Is<string>(url =>
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
                 url.Contains(
-                    $"Symbol=ELF"))
+                    $"Symbol={EoaServerApplicationTestConstant.TokenElfSymbol}"))
         )).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 8,
@@ -693,6 +693,17 @@ public class EoaServerApplicationTestModule : AbpModule
         {
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
+        });
+        
+        mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
+            It.Is<string>(url =>
+                url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
+                url.Contains(
+                    $"Symbol={EoaServerApplicationTestConstant.TokenUsdcSymbol}"))
+        )).ReturnsAsync(new IndexerTokenInfoDto
+        {
+            Decimals = EoaServerApplicationTestConstant.TokenUsdcDecimal,
+            Symbol = EoaServerApplicationTestConstant.TokenUsdcSymbol
         });
         
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
