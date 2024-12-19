@@ -7,7 +7,7 @@ env:
   DOTNET_INSTALL_DIR: "./.dotnet"
 jobs:
   publish:
-    runs-on: portkey-eoa-runner
+    runs-on: portkey-runner
     strategy:
       matrix:
         servicename:
@@ -26,7 +26,7 @@ jobs:
           retention-days: 1
   build-and-push-image:
     needs: publish
-    runs-on: portkey-eoa-runner
+    runs-on: portkey-runner
     strategy:
       matrix:
         servicename:

@@ -1,15 +1,13 @@
 name: Build and Package
-
 on:
   push:
     branches: ['dev', 'release/*']
 #    branches: ['dev']
 env:
   DOTNET_INSTALL_DIR: "./.dotnet"
-
 jobs:
   publish:
-    runs-on: portkey-eoa-runner
+    runs-on: portkey-runner
     strategy:
       matrix:
         servicename: [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer]
@@ -27,7 +25,7 @@ jobs:
           retention-days: 1
   build-and-push-image:
     needs: publish
-    runs-on: portkey-eoa-runner
+    runs-on: portkey-runner
     strategy:
       matrix:
         servicename: [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer]
@@ -48,7 +46,6 @@ jobs:
         with:
           name: ${{ matrix.servicename }}
           path: out/${{ matrix.servicename }}
-
       - name: Create image tag
         id: meta
         uses: docker/metadata-action@v5
@@ -56,12 +53,10 @@ jobs:
           images: ${{ secrets.REPOSITORY_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.REPOSITORY }}/${{ matrix.servicename }}
           tags: |
             type=sha
-
       - # Setting up Docker Buildx with docker-container driver is required
         # at the moment to be able to use a subdirectory with Git context
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -75,7 +70,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
   dispatch:
-    runs-on: portkey-eoa-runner
+    runs-on: portkey-runner
     needs: build-and-push-image
     steps:
       - name: Deploy
@@ -84,7 +79,7 @@ jobs:
           github-token: ${{ secrets.TOK }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
-              owner: 'Awaken-Finance',
+              owner: 'Portkey-Wallet',
               repo: 'devops',
               workflow_id: 'deployment_testnet.yaml',
               ref: 'master',
