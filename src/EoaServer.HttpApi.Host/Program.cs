@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using EoaServer.Common;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -14,11 +15,15 @@ public class Program
     public static async Task<int> Main(string[] args)
     {
         Log.Logger = LogHelper.CreateLogger(LogEventLevel.Debug);
-
+        
         try
         {
             Log.Information("Starting EoaServer.HttpApi.Host.");
             var builder = WebApplication.CreateBuilder(args);
+            builder.Configuration.AddJsonFile("seedurl.json");
+            builder.Configuration.AddJsonFile("activity.json");
+            builder.Configuration.AddJsonFile("userToken.json");
+            
             builder.Host.AddAppSettingsSecretsJson()
                 .UseApolloForConfigureHostBuilder()
                 .UseAutofac()

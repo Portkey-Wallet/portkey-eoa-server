@@ -35,42 +35,34 @@ public class ImageProcessProvider : IImageProcessProvider, ISingletonDependency
 
     public async Task<string> GetResizeImageAsync(string imageUrl, int width, int height, ImageResizeType type)
     {
-        try
+        if (!imageUrl.StartsWith(CommonConstant.ProtocolName))
         {
-            if (!imageUrl.StartsWith(CommonConstant.ProtocolName))
-            {
-                return imageUrl;
-            }
-
-            if (!_awsThumbnailOptions.ExcludedSuffixes.Contains(GetImageUrlSuffix(imageUrl)))
-            {
-                return imageUrl;
-            }
-
-            var bucket = imageUrl.Split("/")[2];
-            if (!_awsThumbnailOptions.BucketList.Contains(bucket))
-            {
-                return imageUrl;
-            }
-
-            var resizeWidth = Enum.GetValues(typeof(ImageResizeWidthType)).Cast<ImageResizeWidthType>()
-                .FirstOrDefault(a => (int)a == width);
-
-            var reizeHeight = Enum.GetValues(typeof(ImageResizeHeightType)).Cast<ImageResizeHeightType>()
-                .FirstOrDefault(a => (int)a == height);
-
-            if (resizeWidth == ImageResizeWidthType.None || reizeHeight == ImageResizeHeightType.None)
-            {
-                return imageUrl;
-            }
-
-            return await GetResizeImageUrlAsync(imageUrl, width, height);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("sendImageRequest Execption:", ex);
             return imageUrl;
         }
+
+        if (!_awsThumbnailOptions.ExcludedSuffixes.Contains(GetImageUrlSuffix(imageUrl)))
+        {
+            return imageUrl;
+        }
+
+        var bucket = imageUrl.Split("/")[2];
+        if (!_awsThumbnailOptions.BucketList.Contains(bucket))
+        {
+            return imageUrl;
+        }
+
+        var resizeWidth = Enum.GetValues(typeof(ImageResizeWidthType)).Cast<ImageResizeWidthType>()
+            .FirstOrDefault(a => (int)a == width);
+
+        var reizeHeight = Enum.GetValues(typeof(ImageResizeHeightType)).Cast<ImageResizeHeightType>()
+            .FirstOrDefault(a => (int)a == height);
+
+        if (resizeWidth == ImageResizeWidthType.None || reizeHeight == ImageResizeHeightType.None)
+        {
+            return imageUrl;
+        }
+
+        return imageUrl;
     }
 
     public string GetResizeUrl(string imageUrl, int width, int height, bool replaceDomain, ImageResizeType type)

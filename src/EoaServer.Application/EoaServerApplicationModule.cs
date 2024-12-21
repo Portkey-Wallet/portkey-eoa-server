@@ -2,6 +2,7 @@
 using EoaServer.Options;
 using EoaServer.Redis;
 using EoaServer.Token.TokenPrice.CoinGecko;
+using EoaServer.UserAssets.Provider;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Account;
 using Volo.Abp.AutoMapper;
@@ -51,6 +52,6 @@ public class EoaServerApplicationModule : AbpModule
         Configure<ETransferOptions>(configuration.GetSection("ETransfer"));
         Configure<DepositOptions>(configuration.GetSection("Deposit"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
-
+        Configure<AwsThumbnailOptions>(configuration.GetSection("AWSThumbnail"));
     }
 }

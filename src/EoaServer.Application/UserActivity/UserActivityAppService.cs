@@ -85,25 +85,31 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             txns = await txnsTask;
             tokenTransfers = await tokenTransfersTask;
             var nftTransfers = await nftTransfersTask;
-
-            tokenTransfers.List.AddRange(nftTransfers.List);
+            
+            if (tokenTransfers != null && nftTransfers != null)
+            {
+                tokenTransfers.List.AddRange(nftTransfers.List);
+            }
         }
         else
         {
             tokenTransfers = await _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount, request.Symbol);
         }
-        
-        foreach (var transfer in tokenTransfers.List)
+
+        if (tokenTransfers != null)
         {
-            var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
-            if (txn == null)
+            foreach (var transfer in tokenTransfers.List)
             {
-                txns.Transactions.Add(new TransactionResponseDto
+                var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
+                if (txn == null)
                 {
-                    TransactionId = transfer.TransactionId,
-                    ChainIds = transfer.ChainIds,
-                    Timestamp = transfer.BlockTime
-                });
+                    txns.Transactions.Add(new TransactionResponseDto
+                    {
+                        TransactionId = transfer.TransactionId,
+                        ChainIds = transfer.ChainIds,
+                        Timestamp = transfer.BlockTime
+                    });
+                }
             }
         }
         
@@ -287,7 +293,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         foreach (var tokenTransferred in dto.TokenTransferreds)
         {
             var isReceived = tokenTransferred.To.Address == dto.From.Address;
-            var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol && t.IsReceived == isReceived);
+            var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol);
             if (symbolInfo == null)
             {
                 activityDto.Operations.Add(new OperationItemInfo()
@@ -301,7 +307,15 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             }
             else
             {
-                symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + tokenTransferred.Amount).ToString();
+                if (isReceived == symbolInfo.IsReceived)
+                {
+                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + tokenTransferred.Amount).ToString();
+                }
+                else
+                {
+                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) - tokenTransferred.Amount).ToString();
+                }
+                
             }
             
         }
@@ -309,7 +323,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         foreach (var nftsTransferred in dto.NftsTransferreds)
         {
             var isReceived = nftsTransferred.To.Address == dto.From.Address;
-            var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == nftsTransferred.Symbol && t.IsReceived == isReceived);
+            var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == nftsTransferred.Symbol);
             if (symbolInfo == null)
             {
                 var isSeed = false;
@@ -340,13 +354,27 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             }
             else
             {
-                symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + nftsTransferred.Amount).ToString();
+                if (isReceived == symbolInfo.IsReceived)
+                {
+                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) + nftsTransferred.Amount).ToString();
+                }
+                else
+                {
+                    symbolInfo.Amount = (long.Parse(symbolInfo.Amount) - nftsTransferred.Amount).ToString();
+                }
             }
         }
 
-        activityDto.ListIcon = activityDto.Operations.FirstOrDefault()?.Icon;
+        foreach (var operation in activityDto.Operations)
+        {
+            if (long.Parse(operation.Amount) < 0)
+            {
+                operation.IsReceived = !operation.IsReceived;
+                operation.Amount = (long.Parse(operation.Amount) * -1).ToString();
+            }
+        }
         
-        _logger.LogInformation($"convert transaction: {dto.TransactionId}, from: {JsonConvert.SerializeObject(dto)}, to: {JsonConvert.SerializeObject(activityDto)}");
+        activityDto.ListIcon = activityDto.Operations.FirstOrDefault()?.Icon;
         
         return activityDto;
     }
