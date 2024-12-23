@@ -14,15 +14,8 @@ public class Program
             .AddJsonFile("appsettings.json")
             .Build();
         Log.Logger = new LoggerConfiguration()
-#if DEBUG
-            .MinimumLevel.Debug()
-#else
-            .MinimumLevel.Information()
-#endif
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .ReadFrom.Configuration(configuration)
             .Enrich.FromLogContext()
-            .WriteTo.Async(c => c.File("Logs/logs.txt"))
-            .WriteTo.Async(c => c.Console())
             .CreateLogger();
         
         try

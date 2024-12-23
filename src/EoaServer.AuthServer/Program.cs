@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using EoaServer;
 using EoaServer.AuthServer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
@@ -13,7 +14,13 @@ public class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        Log.Logger = CreateLogger(LogEventLevel.Debug);
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
+            .Enrich.FromLogContext()
+            .CreateLogger();
 
         try
         {

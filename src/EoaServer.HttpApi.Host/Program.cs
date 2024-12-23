@@ -14,7 +14,13 @@ public class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        Log.Logger = LogHelper.CreateLogger(LogEventLevel.Debug);
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json")
+            .Build();
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
+            .Enrich.FromLogContext()
+            .CreateLogger();
         
         try
         {
