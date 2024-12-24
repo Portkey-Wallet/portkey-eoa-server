@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         servicename:
-          [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer]
+          [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer,EoaServer.DbMigrator]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -30,7 +30,7 @@ jobs:
     strategy:
       matrix:
         servicename:
-          [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer]
+          [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer,EoaServer.DbMigrator]
     permissions:
       contents: read
     steps:
