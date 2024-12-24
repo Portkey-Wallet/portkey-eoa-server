@@ -23,7 +23,7 @@ public class GetActivitiesRequestDto : PagedResultRequestDto
         if (AddressInfos.IsNullOrEmpty() ||
             AddressInfos.Any(info => info.Address.IsNullOrEmpty() || info.ChainId.IsNullOrEmpty()))
         {
-            yield return new ValidationResult("Invalid CaAddresses or CaAddressInfos input.");
+            yield return new ValidationResult("Invalid Addresses or AddressInfos input.");
         }
     }
 }
