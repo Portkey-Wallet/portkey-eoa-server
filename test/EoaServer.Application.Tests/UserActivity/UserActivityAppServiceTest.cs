@@ -22,7 +22,15 @@ public class UserActivityAppServiceTest : EoaServerApplicationTestBase
         var result = await _userActivityAppService.GetActivityAsync(new GetActivityRequestDto()
         {
             TransactionId = "0x1",
-            ChainId = "tDVW"
+            ChainId = "tDVW",
+            AddressInfos = new List<AddressInfo>()
+            {
+                new AddressInfo()
+                {
+                    Address = EoaServerApplicationTestConstant.User1Address,
+                    ChainId = EoaServerApplicationTestConstant.ChainIdTDVW
+                }
+            }
         });
         result.TransactionId.ShouldBe("0x1");
         result.FromAddress.ShouldBe(EoaServerApplicationTestConstant.User1Address);

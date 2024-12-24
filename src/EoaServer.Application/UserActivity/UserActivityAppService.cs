@@ -386,7 +386,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             if (activityDto.Operations[0].NftInfo == null)
             {
                 var token = dto.TokenTransferreds.FirstOrDefault(t => t.Symbol == activityDto.Operations[0].Symbol);
-                if (token != null)
+                if (token != null && token.NowPrice != null && token.AmountString != null)
                 {
                     tokenPrice = double.Parse(token.NowPrice) / double.Parse(token.AmountString);
                 }
@@ -394,14 +394,14 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             else
             {
                 var token = dto.NftsTransferreds.FirstOrDefault(t => t.Symbol == activityDto.Operations[0].Symbol);
-                if (token != null)
+                if (token != null && token.NowPrice != null && token.AmountString != null)
                 {
                     tokenPrice = double.Parse(token.NowPrice) / double.Parse(token.AmountString);
                 }
             }
 
-            var amount = double.Parse(activityDto.Operations[0].Amount) /
-                         Math.Pow(10, double.Parse(activityDto.Operations[0].Decimals));
+            var amount = double.Parse(activityDto.Operations[0]?.Amount ?? "0") /
+                         Math.Pow(10, double.Parse(activityDto.Operations[0]?.Decimals ?? "0"));
             activityDto.Symbol = activityDto.Operations[0].Symbol;
             activityDto.Amount = activityDto.Operations[0].Amount;
             activityDto.Decimals = activityDto.Operations[0].Decimals;
