@@ -28,7 +28,7 @@ public class Program
             var builder = WebApplication.CreateBuilder(args);
             builder.Host.AddAppSettingsSecretsJson()
                 // .InitAppConfiguration(false)
-                // .UseApolloForConfigureHostBuilder()
+                .UseApolloForConfigureHostBuilder()
                 .UseAutofac()
                 .UseSerilog();
 

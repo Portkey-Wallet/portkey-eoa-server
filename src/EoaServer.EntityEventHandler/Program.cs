@@ -39,6 +39,7 @@ namespace EoaServer.EntityEventHandler
         
         internal static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .UseApolloForHostBuilder()
                 .ConfigureAppConfiguration(build =>
                 {
                     build.AddJsonFile("appsettings.secrets.json", optional: true);

@@ -39,6 +39,7 @@ public class Program
 
     internal static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
+            .UseApolloForHostBuilder()
             .ConfigureServices((hostcontext, services) =>
             {
                 services.AddApplication<EoaServerOrleansSiloModule>(); })
