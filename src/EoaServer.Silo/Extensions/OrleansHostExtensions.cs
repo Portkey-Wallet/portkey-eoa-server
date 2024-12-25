@@ -14,27 +14,23 @@ namespace EoaServer.Silo.Extensions;
 
 public static class OrleansHostExtensions
 {
-    public static IHostBuilder UseOrleans(this IHostBuilder hostBuilder)
+    public static IHostBuilder UseOrleansSnapshot(this IHostBuilder hostBuilder)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
-            .Build();
-        if (configuration == null) throw new ArgumentNullException(nameof(configuration));
-        var configSection = configuration.GetSection("Orleans");
-        if (configSection == null)
-            throw new ArgumentNullException(nameof(configSection), "The OrleansServer node is missing");
-        return hostBuilder.UseOrleans(siloBuilder =>
+        return hostBuilder.UseOrleans((context, siloBuilder) =>
         {
-            if (configSection.GetValue<bool>("IsRunningInKubernetes"))
+            //Configure OrleansSnapshot
+            var orleansConfigSection = context.Configuration.GetSection("Orleans");
+            var isRunningInKubernetes = orleansConfigSection.GetValue<bool>("IsRunningInKubernetes");
+            if (isRunningInKubernetes)
             {
                 Log.Warning("==Use kubernetes hosting...");
-                UseKubernetesHostClustering(siloBuilder, configSection);
+                UseKubernetesHostClustering(siloBuilder, orleansConfigSection);
                 Log.Warning("==Use kubernetes hosting end...");
             }
             else
             {
                 Log.Warning("==Use docker hosting...");
-                UseDockerHostClustering(siloBuilder, configSection);
+                UseDockerHostClustering(siloBuilder, orleansConfigSection);
                 Log.Warning("==Use docker hosting end...");
             }
         });

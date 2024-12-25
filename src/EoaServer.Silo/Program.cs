@@ -43,7 +43,7 @@ public class Program
             .ConfigureServices((hostcontext, services) =>
             {
                 services.AddApplication<EoaServerOrleansSiloModule>(); })
-            .UseOrleans()
+            .UseOrleansSnapshot()
             .UseAutofac()
             .UseSerilog();
 }
