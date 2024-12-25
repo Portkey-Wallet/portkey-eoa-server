@@ -30,7 +30,7 @@ public class TokenController : EoaServerBaseController
         _tokenAppService = tokenService;
     }
     
-    [Authorize, HttpGet("list")]
+    [/*Authorize, */HttpGet("list")]
     public async Task<List<GetTokenListDto>> GetTokenListAsync(GetTokenListRequestDto input)
     {
         return await _tokenAppService.GetTokenListAsync(input);

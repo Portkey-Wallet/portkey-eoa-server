@@ -13,7 +13,7 @@ namespace EoaServer.Controllers;
 [Area("app")]
 [ControllerName("UserActivity")]
 [Route("api/app/user/activities")]
-[Authorize]
+// [Authorize]
 public class UserActivityController : EoaServerBaseController
 {
     private readonly IUserActivityAppService _userActivityAppService;
