@@ -36,43 +36,64 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         _logger = logger;
     }
     
-    [ExceptionHandler(typeof(Exception), Message = "GetTokenListAsync Error", LogOnly = true)]
+    [ExceptionHandler(typeof(Exception), Message = "GetTokenListAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<ListResponseDto<TokenCommonDto>> GetTokenListAsync(string chainId, string search)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenListApi;
         var requestUrl = $"{url}?chainId={chainId}&fuzzySearch={search.ToLower()}&skipCount=0&maxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
-        var chainTokenList = await _httpClientProvider.GetDataAsync<ListResponseDto<TokenCommonDto>>(requestUrl);
+        var chainTokenList = await _httpClientProvider.GetDataAsync<ListResponseDto<TokenCommonDto>>(requestUrl, _aelfScanOptions.Timeout);
+        if (chainTokenList == null)
+        {
+            _logger.LogError($"Http request: {requestUrl} get null response");
+        }
         return chainTokenList;
     }
 
-    [ExceptionHandler(typeof(Exception), Message = "GetAddressTokenAssetsAsync Error", LogOnly = true)]
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressTokenAssetsAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<GetAddressTokenListResultDto> GetAddressTokenAssetsAsync(string chainId, string address)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTokenAssetsApi;
         var requestUrl = $"{url}?address={address}&chainId={chainId}&skipCount=0&MaxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
-        var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressTokenListResultDto>(requestUrl);
+        var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressTokenListResultDto>(requestUrl, _aelfScanOptions.Timeout);
+        if (chainTokenList == null)
+        {
+            _logger.LogError($"Http request: {requestUrl} get null response");
+        }
         return chainTokenList;
     }
 
-    [ExceptionHandler(typeof(Exception), Message = "GetAddressNftListAsync Error", LogOnly = true)]
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressNftListAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<GetAddressNftListResultDto> GetAddressNftListAsync(string chainId, string address)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
         var requestUrl = $"{url}?address={address}&chainId={chainId}&skipCount=0&maxResultCount={LimitedResultRequestDto.MaxMaxResultCount}";
-        var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressNftListResultDto>(requestUrl);
+        var chainTokenList = await _httpClientProvider.GetDataAsync<GetAddressNftListResultDto>(requestUrl, _aelfScanOptions.Timeout);
+        if (chainTokenList == null)
+        {
+            _logger.LogError($"Http request: {requestUrl} get null response");
+        }
         return chainTokenList;
     }
 
-    [ExceptionHandler(typeof(Exception), Message = "GetTransactionDetailAsync Error", LogOnly = true)]
     public async Task<TransactionDetailResponseDto> GetTransactionDetailAsync(string chainId, string transactionId)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
         var requestUrl = $"{url}?TransactionId={transactionId}&ChainId={chainId}";
-        var txnDto = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl);
-        return txnDto;
+        
+        try
+        {
+            var txnDto = await _httpClientProvider.GetDataAsync<TransactionDetailResponseDto>(requestUrl, _aelfScanOptions.Timeout);
+            return txnDto;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError($"GetTransactionDetailAsync error. Request: {requestUrl}. Exception: {e}");
+        }
+
+        return null;
     }
     
-    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransactionsAsync Error", LogOnly = true)]
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransactionsAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<TransactionsResponseDto> GetAddressTransactionsAsync(string chainId, string address, int skipCount, int maxResultCount)
     {
         var baseUrl = _aelfScanOptions.BaseUrl;
@@ -82,11 +103,15 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         transactionsUrl += $"address={address}&" +
                            $"skipCount={skipCount}&" +
                            $"maxResultCount={maxResultCount}";
-        var response = await _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl);
+        var response = await _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl, _aelfScanOptions.Timeout);
+        if (response == null)
+        {
+            _logger.LogError($"Http request: {transactionsUrl} get null response");
+        }
         return response;
     }
     
-    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransactionsAsync Error", LogOnly = true)]
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransfersAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<GetTransferListResultDto> GetAddressTransfersAsync(string chainId, string address, int tokenType,
         int skipCount, int maxResultCount, string symbol)
     {
@@ -98,18 +123,19 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
                            $"address={address}&" +
                            $"skipCount={skipCount}&" +
                            $"maxResultCount={maxResultCount}";
-        return await _httpClientProvider.GetDataAsync<GetTransferListResultDto>(nftTransfersUrl);
+        var response = await _httpClientProvider.GetDataAsync<GetTransferListResultDto>(nftTransfersUrl, _aelfScanOptions.Timeout);
+        return response;
     }
     
-    [ExceptionHandler(typeof(Exception), Message = "GetIndexerTokenInfoAsync Error", LogOnly = true)]
+    [ExceptionHandler(typeof(Exception), Message = "GetIndexerTokenInfoAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<IndexerTokenInfoDto> GetIndexerTokenInfoAsync(string chainId, string symbol)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;
         var requestUrl = $"{url}?Symbol={symbol}&ChainId={chainId}";
-        var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl);
+        var tokenInfoResult = await _httpClientProvider.GetDataAsync<IndexerTokenInfoDto>(requestUrl, _aelfScanOptions.Timeout);
         if (tokenInfoResult == null)
         {
-            _logger.LogError($"{requestUrl} get null response");
+            _logger.LogError($"Http request: {requestUrl} get null response");
         }
         return tokenInfoResult;
     }

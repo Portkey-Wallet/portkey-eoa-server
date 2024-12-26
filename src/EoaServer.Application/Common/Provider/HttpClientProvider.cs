@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Mime;
 using System.Text;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -18,7 +19,8 @@ public class HttpClientProvider : IHttpClientProvider, ISingletonDependency
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HttpClientProvider> _logger;
-
+    
+    private const int DefaultTimeout = 3000;
     public HttpClientProvider(IHttpClientFactory httpClientFactory, ILogger<HttpClientProvider> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -43,10 +45,10 @@ public class HttpClientProvider : IHttpClientProvider, ISingletonDependency
         return JsonConvert.DeserializeObject<T>(response);
     }
 
-    public async Task<T> GetDataAsync<T>(string url, int timeout = 1000)
+    public async Task<T> GetDataAsync<T>(string url, int? timeout = null)
     {
         var client = _httpClientFactory.CreateClient();
-        client.Timeout = new TimeSpan(0, 0, 0, 0, timeout);
+        client.Timeout = TimeSpan.FromMilliseconds(timeout.GetValueOrDefault(DefaultTimeout) <= 0 ? DefaultTimeout : timeout.GetValueOrDefault(DefaultTimeout));
         var response = await client.GetStringAsync(url);
         var json = JObject.Parse(response);
         return json["data"].ToObject<T>();
