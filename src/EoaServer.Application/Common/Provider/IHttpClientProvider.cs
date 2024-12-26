@@ -7,7 +7,7 @@ public interface IHttpClientProvider
 {
     Task<T> GetAsync<T>(string url);
     Task<T> GetAsync<T>(string url, Dictionary<string, string> headers);
-    Task<T> GetDataAsync<T>(string url);
+    Task<T> GetDataAsync<T>(string url, int timeout = 1000);
     Task<T> PostAsync<T>(string url);
     Task<T> PostAsync<T>(string url, object paramObj);
     Task<T> PostAsync<T>(string url, object paramObj, Dictionary<string, string> headers);

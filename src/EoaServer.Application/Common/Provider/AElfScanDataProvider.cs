@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using EoaServer.Commons;
 using EoaServer.Options;
 using EoaServer.Token;
@@ -7,8 +9,10 @@ using EoaServer.UserActivity.Dto;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using EoaServer.UserAssets.Provider;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Orleans.Providers;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.DependencyInjection;
 
@@ -32,6 +36,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         _logger = logger;
     }
     
+    [ExceptionHandler(typeof(Exception), Message = "GetTokenListAsync Error", LogOnly = true)]
     public async Task<ListResponseDto<TokenCommonDto>> GetTokenListAsync(string chainId, string search)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenListApi;
@@ -40,6 +45,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return chainTokenList;
     }
 
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressTokenAssetsAsync Error", LogOnly = true)]
     public async Task<GetAddressTokenListResultDto> GetAddressTokenAssetsAsync(string chainId, string address)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserTokenAssetsApi;
@@ -48,6 +54,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return chainTokenList;
     }
 
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressNftListAsync Error", LogOnly = true)]
     public async Task<GetAddressNftListResultDto> GetAddressNftListAsync(string chainId, string address)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanUserNFTAssetsApi;
@@ -56,6 +63,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return chainTokenList;
     }
 
+    [ExceptionHandler(typeof(Exception), Message = "GetTransactionDetailAsync Error", LogOnly = true)]
     public async Task<TransactionDetailResponseDto> GetTransactionDetailAsync(string chainId, string transactionId)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTransactionDetailApi;
@@ -64,6 +72,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return txnDto;
     }
     
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransactionsAsync Error", LogOnly = true)]
     public async Task<TransactionsResponseDto> GetAddressTransactionsAsync(string chainId, string address, int skipCount, int maxResultCount)
     {
         var baseUrl = _aelfScanOptions.BaseUrl;
@@ -77,6 +86,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return response;
     }
     
+    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransactionsAsync Error", LogOnly = true)]
     public async Task<GetTransferListResultDto> GetAddressTransfersAsync(string chainId, string address, int tokenType,
         int skipCount, int maxResultCount, string symbol)
     {
@@ -91,6 +101,7 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return await _httpClientProvider.GetDataAsync<GetTransferListResultDto>(nftTransfersUrl);
     }
     
+    [ExceptionHandler(typeof(Exception), Message = "GetIndexerTokenInfoAsync Error", LogOnly = true)]
     public async Task<IndexerTokenInfoDto> GetIndexerTokenInfoAsync(string chainId, string symbol)
     {
         var url = _aelfScanOptions.BaseUrl + "/" + CommonConstant.AelfScanTokenInfoApi;

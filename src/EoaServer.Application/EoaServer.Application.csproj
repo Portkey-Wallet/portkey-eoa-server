@@ -31,6 +31,7 @@
     <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
     <PackageReference Include="Serilog.Sinks.RollingFile" Version="3.3.0" />
     <PackageReference Include="RestSharp" Version="111.2.0" />
+    <PackageReference Include="AElf.ExceptionHandler.ABP" Version="8.2.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -128,6 +128,10 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             }
             txnChainMap[txn.TransactionId] = txn.ChainIds[0];
             var txnDetail = await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainIds[0], txn.TransactionId);
+            if (txnDetail == null)
+            {
+                _logger.LogError($"Get transaction detail error. ChainId: {txn.ChainIds[0]}, TransactionId: {txn.TransactionId}");
+            }
             return txnDetail;
         }).ToList();
 
