@@ -3,16 +3,11 @@ using System.Threading.Tasks;
 using AElf.ExceptionHandler;
 using EoaServer.Commons;
 using EoaServer.Options;
-using EoaServer.Token;
 using EoaServer.Token.Dto;
 using EoaServer.UserActivity.Dto;
-using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
-using EoaServer.UserAssets.Provider;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Orleans.Providers;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.DependencyInjection;
 
