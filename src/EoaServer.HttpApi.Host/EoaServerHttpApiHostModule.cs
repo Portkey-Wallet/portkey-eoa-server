@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using AElf.OpenTelemetry;
 using AutoResponseWrapper;
 using Confluent.Kafka;
 using EoaServer.Common;
@@ -41,7 +42,8 @@ namespace EoaServer;
     typeof(EoaServerApplicationModule),
     typeof(EoaServerMongoDbModule),
     typeof(AbpAspNetCoreSerilogModule),
-    typeof(AbpSwashbuckleModule)
+    typeof(AbpSwashbuckleModule),
+    typeof(OpenTelemetryModule)
 )]
 public class EoaServerHttpApiHostModule : AbpModule
 {
