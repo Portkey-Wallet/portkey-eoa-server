@@ -251,7 +251,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserNFTAssetsApi) &&
                 url.Contains(
                     $"address={EoaServerApplicationTestConstant.User1Address}&chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&skipCount=0"))
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new GetAddressNftListResultDto
         {
             List = new List<AddressNftInfoDto>()
@@ -308,7 +308,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTokenAssetsApi) &&
                 url.Contains(
                     $"address={EoaServerApplicationTestConstant.User1Address}&chainId={EoaServerApplicationTestConstant.ChainIdAELF}&skipCount=0"))
-            , It.IsAny<int?>())).ReturnsAsync(new GetAddressTokenListResultDto
+            , It.IsAny<int>())).ReturnsAsync(new GetAddressTokenListResultDto
         {
             List = new List<TokenInfoDto>()
             {
@@ -343,7 +343,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTokenAssetsApi) &&
                 url.Contains(
                     $"address={EoaServerApplicationTestConstant.User1Address}&chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&skipCount=0"))
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new GetAddressTokenListResultDto
         {
             List = new List<TokenInfoDto>()
@@ -396,7 +396,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTokenAssetsApi) &&
                 url.Contains(
                     $"address={EoaServerApplicationTestConstant.User1Address}&chainId={EoaServerApplicationTestConstant.ChainIdAELF}&skipCount=0"))
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new GetAddressTokenListResultDto
         {
             List = new List<TokenInfoDto>()
@@ -432,7 +432,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTransactionsApi) &&
                 url.Contains(
                     $"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new TransactionsResponseDto
         {
             Transactions = new List<TransactionResponseDto>()
@@ -451,7 +451,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTransfersApi) &&
                 url.Contains(
                     $"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&tokenType=0&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new GetTransferListResultDto
         {
             List = new List<TokenTransferInfoDto>()
@@ -476,7 +476,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanUserTransfersApi) &&
                 url.Contains(
                     $"chainId={EoaServerApplicationTestConstant.ChainIdTDVW}&tokenType=1&address={EoaServerApplicationTestConstant.User1Address}&skipCount=0"))
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new GetTransferListResultDto
         {
             List = new List<TokenTransferInfoDto>()
@@ -492,7 +492,7 @@ public class EoaServerApplicationTestModule : AbpModule
 
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionDetailResponseDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTransactionDetailApi}?TransactionId=0x1&ChainId={EoaServerApplicationTestConstant.ChainIdTDVW}"
-            , It.IsAny<int?>()
+            , It.IsAny<int>()
         )).ReturnsAsync(new TransactionDetailResponseDto
         {
             List = new List<TransactionDetailDto>()
@@ -566,7 +566,7 @@ public class EoaServerApplicationTestModule : AbpModule
 
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionDetailResponseDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTransactionDetailApi}?TransactionId=0x2&ChainId={EoaServerApplicationTestConstant.ChainIdTDVW}"
-            , It.IsAny<int?>())).ReturnsAsync(new TransactionDetailResponseDto
+            , It.IsAny<int>())).ReturnsAsync(new TransactionDetailResponseDto
         {
             List = new List<TransactionDetailDto>()
             {
@@ -608,7 +608,7 @@ public class EoaServerApplicationTestModule : AbpModule
 
         mockHttpProvider.Setup(provider => provider.GetDataAsync<TransactionDetailResponseDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTransactionDetailApi}?TransactionId=0x3&ChainId={EoaServerApplicationTestConstant.ChainIdTDVW}"
-            , It.IsAny<int?>())).ReturnsAsync(new TransactionDetailResponseDto
+            , It.IsAny<int>())).ReturnsAsync(new TransactionDetailResponseDto
         {
             List = new List<TransactionDetailDto>()
             {
@@ -656,7 +656,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenListApi) &&
                 url.Contains(
                     $"chainId=tDVW&fuzzySearch=el&skipCount=0"))
-            , It.IsAny<int?>())).ReturnsAsync(new ListResponseDto<TokenCommonDto>
+            , It.IsAny<int>())).ReturnsAsync(new ListResponseDto<TokenCommonDto>
         {
             Total = 1,
             List = new List<TokenCommonDto>()
@@ -685,7 +685,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
                 url.Contains(
                     $"Symbol={EoaServerApplicationTestConstant.TokenElfSymbol}"))
-            , It.IsAny<int?>())).ReturnsAsync(new IndexerTokenInfoDto
+            , It.IsAny<int>())).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenElfSymbol
@@ -696,7 +696,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
                 url.Contains(
                     $"Symbol={EoaServerApplicationTestConstant.TokenSgrSymbol}"))
-            , It.IsAny<int?>())).ReturnsAsync(new IndexerTokenInfoDto
+            , It.IsAny<int>())).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 8,
             Symbol = EoaServerApplicationTestConstant.TokenSgrSymbol
@@ -707,7 +707,7 @@ public class EoaServerApplicationTestModule : AbpModule
                 url.StartsWith("mockAElfScanUrl/" + CommonConstant.AelfScanTokenInfoApi) &&
                 url.Contains(
                     $"Symbol={EoaServerApplicationTestConstant.TokenUsdcSymbol}"))
-            , It.IsAny<int?>())).ReturnsAsync(new IndexerTokenInfoDto
+            , It.IsAny<int>())).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = EoaServerApplicationTestConstant.TokenUsdcDecimal,
             Symbol = EoaServerApplicationTestConstant.TokenUsdcSymbol
@@ -715,7 +715,7 @@ public class EoaServerApplicationTestModule : AbpModule
 
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=BBB-2&ChainId=tDVW"
-            , It.IsAny<int?>())).ReturnsAsync(new IndexerTokenInfoDto
+            , It.IsAny<int>())).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 0,
             Symbol = EoaServerApplicationTestConstant.NftBBB2Symbol,
@@ -726,7 +726,7 @@ public class EoaServerApplicationTestModule : AbpModule
 
         mockHttpProvider.Setup(provider => provider.GetDataAsync<IndexerTokenInfoDto>(
             $"mockAElfScanUrl/{CommonConstant.AelfScanTokenInfoApi}?Symbol=BBB-1&ChainId=tDVW"
-            , It.IsAny<int?>())).ReturnsAsync(new IndexerTokenInfoDto
+            , It.IsAny<int>())).ReturnsAsync(new IndexerTokenInfoDto
         {
             Decimals = 0,
             Symbol = EoaServerApplicationTestConstant.NftBBB1Symbol,
