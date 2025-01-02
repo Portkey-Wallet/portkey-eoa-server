@@ -25,7 +25,7 @@ public class ActivityBase
     public string ToChainId { get; set; }
     public string ToChainIdUpdated { get; set; }
     public string ToChainIcon { get; set; }
-    public List<TransactionFee> TransactionFees { get; set; }
+    public List<TransactionFee> TransactionFees { get; set; } = new();
     public string PriceInUsd { get; set; }
     public bool IsDelegated { get; set; }
     public bool IsSystem { get; set; }

@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using EoaServer.Common;
 using EoaServer.Commons;
 using EoaServer.Options;
+using EoaServer.Provider;
+using EoaServer.Provider.Dto.Indexer;
 using EoaServer.Token;
 using EoaServer.Token.Dto;
 using EoaServer.UserActivity.Dto;
@@ -13,6 +15,7 @@ using EoaServer.UserActivity.Dtos;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using EoaServer.UserAssets.Provider;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -36,14 +39,16 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     private readonly ITokenInfoProvider _tokenInfoProvider;
     private readonly IAElfScanDataProvider _aelfScanDataProvider;
     private readonly IImageProcessProvider _imageProcessProvider;
-
+    private readonly IGraphQLProvider _graphqlProvider;
+    
     public UserActivityAppService(ILogger<UserActivityAppService> logger,
         IOptionsSnapshot<ActivityOptions> activityOptions,
         IOptionsSnapshot<TokenSpenderOptions> tokenSpenderOptions,
         IOptionsSnapshot<ChainOptions> chainOptions,
         ITokenInfoProvider tokenInfoProvider,
         IImageProcessProvider imageProcessProvider,
-        IAElfScanDataProvider aelfScanDataProvider)
+        IAElfScanDataProvider aelfScanDataProvider,
+        IGraphQLProvider graphqlProvider)
     {
         _logger = logger;
         _activityOptions = activityOptions.Value;
@@ -52,6 +57,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         _tokenInfoProvider = tokenInfoProvider;
         _aelfScanDataProvider = aelfScanDataProvider;
         _imageProcessProvider = imageProcessProvider;
+        _graphqlProvider = graphqlProvider;
     }
     
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
@@ -63,43 +69,43 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             _logger.LogError($"Get TransactionDetailResponseDto failed, chainId: {request.ChainId}, transactionId: {request.TransactionId}");
             return null;
         }
-
-        var tokenMap = await GetTokenMapAsync(txnDto.List);
+        var tokens = new HashSet<string>(
+            txnDto.List
+                .SelectMany(txn => txn.TokenTransferreds
+                    .Select(transfer => transfer.Symbol)
+                    .Concat(txn.NftsTransferreds
+                        .Select(transfer => transfer.Symbol)))
+        );
+        var tokenMap = await GetTokenMapAsync(tokens);
         return await ConvertDtoAsync(request.ChainId, txnDto.List[0], tokenMap, 0, 0, request.AddressInfos[0].Address);
     }
     
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request)
     {
         var address = request.AddressInfos[0].Address;
-        var chainId = request.AddressInfos.Count == 1 ? request.AddressInfos[0].ChainId : null;
+        var chainId = request.AddressInfos.Count == 1 ? request.AddressInfos[0].ChainId : "";
 
         var txns = new TransactionsResponseDto();
-        var tokenTransfers = new GetTransferListResultDto();
-        if (string.IsNullOrEmpty(request.Symbol))
+        var tokenTransfers = new IndexerTokenTransferListDto();
+        
+        var txnsTask = _aelfScanDataProvider.GetAddressTransactionsAsync(chainId, address, 0, request.SkipCount + request.MaxResultCount);
+        var tokenTransfersTask = _graphqlProvider.GetTokenTransferInfoAsync(new TokenTransferInput()
         {
-            var txnsTask = _aelfScanDataProvider.GetAddressTransactionsAsync(chainId, address, 0, request.SkipCount + request.MaxResultCount);
-            var tokenTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount, null);
-            var nftTransfersTask = _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 1, 0, request.SkipCount + request.MaxResultCount, null);
+            Address = address,
+            ChainId = chainId,
+            SkipCount = 0,
+            MaxResultCount = request.SkipCount + request.MaxResultCount,
+            Symbol = request.Symbol
+        });
 
-            await Task.WhenAll(txnsTask, tokenTransfersTask, nftTransfersTask);
+        await Task.WhenAll(txnsTask, tokenTransfersTask);
 
-            txns = await txnsTask;
-            tokenTransfers = await tokenTransfersTask;
-            var nftTransfers = await nftTransfersTask;
-            
-            if (tokenTransfers != null && nftTransfers != null)
-            {
-                tokenTransfers.List.AddRange(nftTransfers.List);
-            }
-        }
-        else
-        {
-            tokenTransfers = await _aelfScanDataProvider.GetAddressTransfersAsync(chainId, address, 0, 0, request.SkipCount + request.MaxResultCount, request.Symbol);
-        }
-
+        txns = await txnsTask;
+        tokenTransfers = await tokenTransfersTask;
+        
         if (tokenTransfers != null)
         {
-            foreach (var transfer in tokenTransfers.List)
+            foreach (var transfer in tokenTransfers.Items)
             {
                 var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
                 if (txn == null)
@@ -107,8 +113,8 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                     txns.Transactions.Add(new TransactionResponseDto
                     {
                         TransactionId = transfer.TransactionId,
-                        ChainIds = transfer.ChainIds,
-                        Timestamp = transfer.BlockTime
+                        ChainIds = new List<string>(){transfer.Metadata.ChainId},
+                        Timestamp = DateTimeHelper.ToUnixTimeSeconds(transfer.Metadata.Block.BlockTime)
                     });
                 }
             }
@@ -127,24 +133,34 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                 return null;
             }
             txnChainMap[txn.TransactionId] = txn.ChainIds[0];
-            var txnDetail = await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainIds[0], txn.TransactionId);
-            if (txnDetail == null)
+            return await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainIds[0], txn.TransactionId);
+        }).ToList();
+
+        var txnDetailMap = (await Task.WhenAll(mapTasks))
+            .Where(result => result != null)
+            .SelectMany(result => result.List)
+            .ToDictionary(t => t.TransactionId, t => t);
+
+        var tokens = new HashSet<string>(
+            txnDetailMap
+                .SelectMany(txn => txn.Value.TokenTransferreds
+                    .Select(transfer => transfer.Symbol)
+                    .Concat(txn.Value.NftsTransferreds
+                        .Select(transfer => transfer.Symbol)))
+        );
+        
+        var tokenMap = await GetTokenMapAsync(tokens);
+        var activityDtos = new List<GetActivityDto>();
+        foreach (var txn in txns.Transactions)
+        {
+            if (txnDetailMap.ContainsKey(txn.TransactionId) && txnDetailMap[txn.TransactionId] != null)
+            {
+                activityDtos.Add(await ConvertDtoAsync(txn.ChainIds[0], txnDetailMap[txn.TransactionId], tokenMap, request.Width, request.Height, request.AddressInfos[0].Address));
+            }
+            else
             {
                 _logger.LogError($"Get transaction detail error. ChainId: {txn.ChainIds[0]}, TransactionId: {txn.TransactionId}");
             }
-            return txnDetail;
-        }).ToList();
-
-        var txnDetails = (await Task.WhenAll(mapTasks))
-            .Where(result => result != null)
-            .SelectMany(result => result.List) 
-            .ToList();
-        
-        var tokenMap = await GetTokenMapAsync(txnDetails);
-        var activityDtos = new List<GetActivityDto>();
-        foreach (var txnDetail in txnDetails)
-        {
-            activityDtos.Add(await ConvertDtoAsync(txnChainMap[txnDetail.TransactionId], txnDetail, tokenMap, request.Width, request.Height, request.AddressInfos[0].Address));
         }
         
         return new GetActivitiesDto()
@@ -153,26 +169,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         };
     }
 
-    private async Task<Dictionary<string, TokenInfoDto>> GetTokenMapAsync(List<TransactionDetailDto> txnDetails)
+    private async Task<Dictionary<string, TokenInfoDto>> GetTokenMapAsync(HashSet<string> tokens)
     {
-        var result = new Dictionary<string, TokenInfoDto>();
-        foreach (var transactionDetail in txnDetails)
-        {
-            foreach (var tokenTransferred in transactionDetail.TokenTransferreds)
-            {
-                if (!result.ContainsKey(tokenTransferred.Symbol))
-                {
-                    result[tokenTransferred.Symbol] = null;
-                }
-            }
-            foreach (var nftsTransferred in transactionDetail.NftsTransferreds)
-            {
-                if (!result.ContainsKey(nftsTransferred.Symbol))
-                {
-                    result[nftsTransferred.Symbol] = null;
-                }
-            }
-        }
+        var result = tokens.ToDictionary(t => t, t => new TokenInfoDto());
 
         var sideChain = _chainOptions.ChainInfos.FirstOrDefault(t => t.Value.IsMainChain == false);
         var tokenChain = sideChain.Value.ChainId;

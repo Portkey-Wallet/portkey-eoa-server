@@ -12,7 +12,7 @@ public class GetActivitiesRequestDto : PagedResultRequestDto
     public List<AddressInfo> AddressInfos { get; set; }
     public List<string> TransactionTypes { get; set; }
     public string ChainId { get; set; }
-    public string Symbol { get; set; }
+    public string Symbol { get; set; } = "";
 
     public int Width { get; set; }
 
