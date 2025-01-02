@@ -53,5 +53,6 @@ public class EoaServerApplicationModule : AbpModule
         Configure<DepositOptions>(configuration.GetSection("Deposit"));
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
         Configure<AwsThumbnailOptions>(configuration.GetSection("AWSThumbnail"));
+        Configure<GraphQLOptions>(configuration.GetSection("GraphQLOptions"));
     }
 }
