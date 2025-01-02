@@ -88,7 +88,6 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         return null;
     }
     
-    [ExceptionHandler(typeof(Exception), Message = "GetAddressTransactionsAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]
     public async Task<TransactionsResponseDto> GetAddressTransactionsAsync(string chainId, string address, int skipCount, int maxResultCount)
     {
         var baseUrl = _aelfScanOptions.BaseUrl;
@@ -98,12 +97,15 @@ public class AElfScanDataProvider : IAElfScanDataProvider, ISingletonDependency
         transactionsUrl += $"address={address}&" +
                            $"skipCount={skipCount}&" +
                            $"maxResultCount={maxResultCount}";
-        var response = await _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl, _aelfScanOptions.Timeout);
-        if (response == null)
+        try
+        {
+            return await _httpClientProvider.GetDataAsync<TransactionsResponseDto>(transactionsUrl, _aelfScanOptions.Timeout);
+        }
+        catch (Exception e)
         {
             _logger.LogError($"Http request: {transactionsUrl} get null response");
         }
-        return response;
+        return null;
     }
     
     [ExceptionHandler(typeof(Exception), Message = "GetAddressTransfersAsync Error", TargetType = typeof(HandlerExceptionService), MethodName = nameof(HandlerExceptionService.HandleWithReturnNull))]

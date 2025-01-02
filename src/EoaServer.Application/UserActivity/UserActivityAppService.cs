@@ -101,6 +101,10 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         await Task.WhenAll(txnsTask, tokenTransfersTask);
 
         txns = await txnsTask;
+        if (txns == null)
+        {
+            txns = new TransactionsResponseDto();
+        }
         tokenTransfers = await tokenTransfersTask;
         
         if (tokenTransfers != null)
@@ -125,14 +129,12 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             .Take(request.MaxResultCount)
             .ToList();
         
-        var txnChainMap = new Dictionary<string, string>();
         var mapTasks = txns.Transactions.Select(async txn =>
         {
             if (txn.ChainIds.Count < 1)
             {
                 return null;
             }
-            txnChainMap[txn.TransactionId] = txn.ChainIds[0];
             return await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainIds[0], txn.TransactionId);
         }).ToList();
 
