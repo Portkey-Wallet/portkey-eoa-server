@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Generic;
 using EoaServer.Common;
 using EoaServer.Commons;
 using EoaServer.EntityEventHandler.Core;
 using EoaServer.Grain.Tests;
 using EoaServer.Options;
+using EoaServer.Provider;
+using EoaServer.Provider.Dto.Indexer;
 using EoaServer.Token;
 using EoaServer.Token.Dto;
 using EoaServer.UserActivity;
@@ -234,14 +237,89 @@ public class EoaServerApplicationTestModule : AbpModule
     private void MockData(ServiceConfigurationContext context)
     {
         var mockHttpProvider = new Mock<IHttpClientProvider>();
-
         MockTokenListData(mockHttpProvider);
         MockTokenInfoData(mockHttpProvider);
         MockTransactionData(mockHttpProvider);
         MockAssetsData(mockHttpProvider);
         MockNftAssetsData(mockHttpProvider);
-
         context.Services.AddSingleton<IHttpClientProvider>(mockHttpProvider.Object);
+
+        var mockGraphQLProvider = new Mock<IGraphQLProvider>();
+        MockTransactions(mockGraphQLProvider);
+        context.Services.AddSingleton<IGraphQLProvider>(mockGraphQLProvider.Object);
+    }
+
+    private void MockTransactions(Mock<IGraphQLProvider> mockGraphQLProvider)
+    {
+        mockGraphQLProvider.Setup(provider => provider.GetTransactionsAsync(
+                It.Is<TransactionsRequestDto>(
+                    req => req.Address == EoaServerApplicationTestConstant.User1Address
+                           && req.ChainId == EoaServerApplicationTestConstant.ChainIdTDVW)))
+            .ReturnsAsync(new IndexerTransactionListResultDto()
+            {
+                Items = new List<IndexerTransactionInfoDto>()
+                {
+                    new IndexerTransactionInfoDto()
+                    {
+                        TransactionId = "0x1",
+                        Metadata = new MetadataDto()
+                        {
+                            ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                            Block = new BlockMetadataDto()
+                            {
+                                BlockTime = new DateTime(2000, 1, 1)
+                            }
+                        }
+                    }
+                }
+            });
+
+        mockGraphQLProvider.Setup(provider => provider.GetTokenTransferInfoAsync(
+                It.Is<GetTokenTransferRequestDto>(
+                    req => req.Address == EoaServerApplicationTestConstant.User1Address
+                           && req.ChainId == EoaServerApplicationTestConstant.ChainIdTDVW)))
+            .ReturnsAsync(new IndexerTokenTransferListDto()
+            {
+                Items = new List<IndexerTransferInfoDto>()
+                {
+                    new IndexerTransferInfoDto()
+                    {
+                        TransactionId = "0x3",
+                        Metadata = new MetadataDto()
+                        {
+                            ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                            Block = new BlockMetadataDto()
+                            {
+                                BlockTime = new DateTime(2000, 1,  3)
+                            }
+                        }
+                    },
+                    new IndexerTransferInfoDto()
+                    {
+                        TransactionId = "0x2",
+                        Metadata = new MetadataDto()
+                        {
+                            ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                            Block = new BlockMetadataDto()
+                            {
+                                BlockTime = new DateTime(2000, 1,  2)
+                            }
+                        }
+                    },
+                    new IndexerTransferInfoDto()
+                    {
+                        TransactionId = "0x1",
+                        Metadata = new MetadataDto()
+                        {
+                            ChainId = EoaServerApplicationTestConstant.ChainIdTDVW,
+                            Block = new BlockMetadataDto()
+                            {
+                                BlockTime = new DateTime(2000, 1,  1)
+                            }
+                        }
+                    }
+                }
+            });
     }
 
     private void MockNftAssetsData(Mock<IHttpClientProvider> mockHttpProvider)

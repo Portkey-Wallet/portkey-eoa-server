@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using EoaServer.Options;
 using EoaServer.Provider.Dto.Indexer;
@@ -38,10 +39,10 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         _tokenAppService = tokenAppService;
     }
 
-    public async Task<IndexerTokenTransferListDto> GetTokenTransferInfoAsync(TokenTransferInput input)
+    public async Task<IndexerTokenTransferListDto> GetTokenTransferInfoAsync(GetTokenTransferRequestDto requestDto)
     {
-        input.SetDefaultSort();
-        var indexerResult = await _tokenIndexerClient.SendQueryAsync<IndexerTokenTransfersDto>(new GraphQLRequest
+        requestDto.SetDefaultSort();
+        var graphQlResponse = await _tokenIndexerClient.SendQueryAsync<IndexerTokenTransfersDto>(new GraphQLRequest
         {
             Query =
                 @"query($chainId:String!,$symbol:String!,$address:String,$collectionSymbol:String,
@@ -65,14 +66,77 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
             }",
             Variables = new
             {
-                chainId = input.ChainId, symbol = input.Symbol, address = input.Address, search = input.Search,
-                skipCount = input.SkipCount, maxResultCount = input.MaxResultCount,
-                collectionSymbol = input.CollectionSymbol,
-                sort = input.Sort, fuzzySearch = input.FuzzySearch,
-                orderInfos = input.OrderInfos, searchAfter = input.SearchAfter, beginBlockTime = input.BeginBlockTime
+                chainId = requestDto.ChainId, symbol = requestDto.Symbol, address = requestDto.Address, search = requestDto.Search,
+                skipCount = requestDto.SkipCount, maxResultCount = requestDto.MaxResultCount,
+                collectionSymbol = requestDto.CollectionSymbol,
+                sort = requestDto.Sort, fuzzySearch = requestDto.FuzzySearch,
+                orderInfos = requestDto.OrderInfos, searchAfter = requestDto.SearchAfter, beginBlockTime = requestDto.BeginBlockTime
             }
         });
-        return indexerResult == null  || indexerResult.Data == null ? 
-            new IndexerTokenTransferListDto() : indexerResult.Data.TransferInfo;
+        
+        if (graphQlResponse.Errors != null)
+        {
+            ErrorLog(graphQlResponse.Errors);
+            return new IndexerTokenTransferListDto();
+        }
+        
+        return graphQlResponse.Data.TransferInfo;
+    }
+    
+    public async Task<IndexerTransactionListResultDto> GetTransactionsAsync(TransactionsRequestDto requestDto)
+    {
+        requestDto.SetDefaultSort();
+        var graphQlResponse = await _blockChainIndexerClient.SendQueryAsync<IndexerTransactionResultDto>(new GraphQLRequest
+        {
+            Query =
+                @"query($chainId:String,$skipCount:Int!,$maxResultCount:Int!,$startTime:Long!,$endTime:Long!,$address:String!,$searchAfter:[String],$orderInfos:[OrderInfo]){
+                    transactionInfos(input: {chainId:$chainId,skipCount:$skipCount,maxResultCount:$maxResultCount,startTime:$startTime,endTime:$endTime,address:$address,searchAfter:$searchAfter,orderInfos:$orderInfos})
+                {
+                  totalCount
+                    items {
+                       transactionId
+                          blockHeight
+                          chainId
+                          methodName
+                          status
+                          from
+                          to
+                          transactionValue
+                          fee
+                          metadata {
+                            chainId
+                            block {
+                              blockHash
+                              blockHeight
+                              blockTime
+                            }
+                          }
+                    }
+                }
+            }",
+            Variables = new
+            {
+                chainId = requestDto.ChainId, skipCount = requestDto.SkipCount, maxResultCount = requestDto.MaxResultCount,
+                startTime = requestDto.StartTime,
+                endTime = requestDto.EndTime, address = requestDto.Address,
+                orderInfos = requestDto.OrderInfos, searchAfter = requestDto.SearchAfter
+            }
+        });
+        
+        if (graphQlResponse.Errors != null)
+        {
+            ErrorLog(graphQlResponse.Errors);
+            return new IndexerTransactionListResultDto();
+        }
+        
+        return graphQlResponse.Data.TransactionInfos;
+    }
+    
+    private void ErrorLog(GraphQLError[] errors)
+    {
+        errors.ToList().ForEach(error =>
+        {
+            _logger.Error("GraphQL error: {message}", error.Message);
+        });
     }
 }

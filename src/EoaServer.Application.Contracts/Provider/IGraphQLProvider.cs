@@ -5,5 +5,6 @@ namespace EoaServer.Provider;
 
 public interface IGraphQLProvider
 {
-    public Task<IndexerTokenTransferListDto> GetTokenTransferInfoAsync(TokenTransferInput input);
+    Task<IndexerTokenTransferListDto> GetTokenTransferInfoAsync(GetTokenTransferRequestDto requestDto);
+    Task<IndexerTransactionListResultDto> GetTransactionsAsync(TransactionsRequestDto input);
 }

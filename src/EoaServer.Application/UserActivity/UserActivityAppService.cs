@@ -79,17 +79,59 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         var tokenMap = await GetTokenMapAsync(tokens);
         return await ConvertDtoAsync(request.ChainId, txnDto.List[0], tokenMap, 0, 0, request.AddressInfos[0].Address);
     }
+
+    public List<TransactionInfo> MergeTxns(IndexerTransactionListResultDto txns, IndexerTokenTransferListDto tokenTransfers)
+    {
+        var result = new List<TransactionInfo>();
+        if (txns != null)
+        {
+            foreach (var txn in txns.Items)
+            {
+                result.Add(new TransactionInfo()
+                {
+                    ChainId = txn.Metadata.ChainId,
+                    TransactionId = txn.TransactionId,
+                    Timestamp = DateTimeHelper.ToUnixTimeSeconds(txn.Metadata.Block.BlockTime)
+                });
+            }
+        }
+        
+        if (tokenTransfers != null)
+        {
+            foreach (var transfer in tokenTransfers.Items)
+            {
+                var txn = txns.Items.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
+                if (txn == null)
+                {
+                    result.Add(new TransactionInfo
+                        {
+                            TransactionId = transfer.TransactionId,
+                            ChainId = transfer.Metadata.ChainId,
+                            Timestamp = DateTimeHelper.ToUnixTimeSeconds(transfer.Metadata.Block.BlockTime)
+                    });
+                }
+            }
+        }
+
+        return result;
+    }
     
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request)
     {
         var address = request.AddressInfos[0].Address;
         var chainId = request.AddressInfos.Count == 1 ? request.AddressInfos[0].ChainId : "";
 
-        var txns = new TransactionsResponseDto();
+        var txns = new IndexerTransactionListResultDto();
         var tokenTransfers = new IndexerTokenTransferListDto();
         
-        var txnsTask = _aelfScanDataProvider.GetAddressTransactionsAsync(chainId, address, 0, request.SkipCount + request.MaxResultCount);
-        var tokenTransfersTask = _graphqlProvider.GetTokenTransferInfoAsync(new TokenTransferInput()
+        var txnsTask = _graphqlProvider.GetTransactionsAsync(new TransactionsRequestDto()
+        {
+            ChainId = chainId,
+            Address = address,
+            SkipCount = 0,
+            MaxResultCount = request.SkipCount + request.MaxResultCount
+        });
+        var tokenTransfersTask = _graphqlProvider.GetTokenTransferInfoAsync(new GetTokenTransferRequestDto()
         {
             Address = address,
             ChainId = chainId,
@@ -99,43 +141,19 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         });
 
         await Task.WhenAll(txnsTask, tokenTransfersTask);
-
+        
         txns = await txnsTask;
-        if (txns == null)
-        {
-            txns = new TransactionsResponseDto();
-        }
         tokenTransfers = await tokenTransfersTask;
+        var transactions = MergeTxns(txns, tokenTransfers);
         
-        if (tokenTransfers != null)
-        {
-            foreach (var transfer in tokenTransfers.Items)
-            {
-                var txn = txns.Transactions.FirstOrDefault(t => t.TransactionId == transfer.TransactionId);
-                if (txn == null)
-                {
-                    txns.Transactions.Add(new TransactionResponseDto
-                    {
-                        TransactionId = transfer.TransactionId,
-                        ChainIds = new List<string>(){transfer.Metadata.ChainId},
-                        Timestamp = DateTimeHelper.ToUnixTimeSeconds(transfer.Metadata.Block.BlockTime)
-                    });
-                }
-            }
-        }
-        
-        txns.Transactions = txns.Transactions.OrderByDescending(item => item.Timestamp)
+        transactions = transactions.OrderByDescending(item => item.Timestamp)
             .Skip(request.SkipCount) 
             .Take(request.MaxResultCount)
             .ToList();
         
-        var mapTasks = txns.Transactions.Select(async txn =>
+        var mapTasks = transactions.Select(async txn =>
         {
-            if (txn.ChainIds.Count < 1)
-            {
-                return null;
-            }
-            return await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainIds[0], txn.TransactionId);
+            return await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainId, txn.TransactionId);
         }).ToList();
 
         var txnDetailMap = (await Task.WhenAll(mapTasks))
@@ -153,15 +171,15 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         var tokenMap = await GetTokenMapAsync(tokens);
         var activityDtos = new List<GetActivityDto>();
-        foreach (var txn in txns.Transactions)
+        foreach (var txn in transactions)
         {
             if (txnDetailMap.ContainsKey(txn.TransactionId) && txnDetailMap[txn.TransactionId] != null)
             {
-                activityDtos.Add(await ConvertDtoAsync(txn.ChainIds[0], txnDetailMap[txn.TransactionId], tokenMap, request.Width, request.Height, request.AddressInfos[0].Address));
+                activityDtos.Add(await ConvertDtoAsync(txn.ChainId, txnDetailMap[txn.TransactionId], tokenMap, request.Width, request.Height, request.AddressInfos[0].Address));
             }
             else
             {
-                _logger.LogError($"Get transaction detail error. ChainId: {txn.ChainIds[0]}, TransactionId: {txn.TransactionId}");
+                _logger.LogError($"Get transaction detail error. ChainId: {txn.ChainId}, TransactionId: {txn.TransactionId}");
             }
         }
         
@@ -420,5 +438,12 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         activityDto.ListIcon = activityDto.Operations.FirstOrDefault()?.Icon;
         
         return activityDto;
+    }
+
+    public class TransactionInfo
+    {
+        public string ChainId { get; set; }
+        public string TransactionId { get; set; }
+        public long Timestamp { get; set; }
     }
 }
