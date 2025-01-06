@@ -532,6 +532,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
 
     private async Task AddUserTokensAsync(GetAddressTokenListResultDto tokensResultDto)
     {
+        if (!CurrentUser.Id.HasValue)
+        {
+            return;
+        }
         var userId = CurrentUser.GetId();
         var userTokens =
             await _userTokenProvider.GetUserTokenInfoListAsync(userId, string.Empty, string.Empty);
