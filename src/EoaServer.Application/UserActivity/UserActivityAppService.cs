@@ -185,7 +185,10 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         return new GetActivitiesDto()
         {
-            Data = activityDtos
+            Data = activityDtos,
+            HasNextPage = request.MaxResultCount <= activityDtos.Count,
+            TotalRecordCount = request.MaxResultCount <= activityDtos.Count 
+                ? transactions.Count : request.SkipCount + activityDtos.Count 
         };
     }
 
