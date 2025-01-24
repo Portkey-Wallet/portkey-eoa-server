@@ -68,6 +68,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         foreach (var addressInfo in requestDto.AddressInfos)
         {
             var chainTokenList = await _aelfScanDataProvider.GetAddressTokenAssetsAsync(addressInfo.ChainId, addressInfo.Address);
+            if (chainTokenList == null || chainTokenList.List.IsNullOrEmpty()) continue;
             tokenList.AssetInUsd += chainTokenList.AssetInUsd;
             tokenList.AssetInElf += chainTokenList.AssetInElf;
             tokenList.Total += chainTokenList.Total;
@@ -113,7 +114,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         foreach (var addressInfo in requestDto.AddressInfos)
         {
             var chainTokenList = await _aelfScanDataProvider.GetAddressNftListAsync(addressInfo.ChainId, addressInfo.Address);
-            if (chainTokenList != null)
+            if (chainTokenList != null && !chainTokenList.List.IsNullOrEmpty())
             {
                 nftList.Total += chainTokenList.Total;
                 nftList.List.AddRange(chainTokenList.List);
@@ -417,7 +418,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         {
             // get all NFT for TotalNftItemCount
             var chainTokenList = await _aelfScanDataProvider.GetAddressNftListAsync(addressInfo.ChainId, addressInfo.Address);
-            if (chainTokenList != null)
+            if (chainTokenList != null && !chainTokenList.List.IsNullOrEmpty())
             {
                 nftList.AddRange(chainTokenList.List);
             }

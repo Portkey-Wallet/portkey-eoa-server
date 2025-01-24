@@ -144,14 +144,14 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
         {
             var chainIndexerToken =
                 await _aelfScanDataProvider.GetTokenListAsync(chainId, input.Symbol);
-            if (chainIndexerToken != null)
+            if (chainIndexerToken != null && !chainIndexerToken.List.IsNullOrEmpty())
             {
                 indexerTokens.AddRange(chainIndexerToken.List);
             }
         }
 
         var userTokensDto = await _userTokenProvider.GetUserTokenInfoListAsync(
-            CurrentUser.GetId(),
+            CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty,
             input.ChainIds.Count == 1 ? input.ChainIds.First() : string.Empty,
             string.Empty);
 
