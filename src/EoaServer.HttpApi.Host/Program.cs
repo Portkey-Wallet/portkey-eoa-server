@@ -33,7 +33,7 @@ public class Program
             builder.Host.AddAppSettingsSecretsJson()
                 .UseApolloForConfigureHostBuilder()
                 .UseAutofac()
-                .UseOrleansClient()
+                // .UseOrleansClient()
                 .UseSerilog();
 
             await builder.AddApplicationAsync<EoaServerHttpApiHostModule>();

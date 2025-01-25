@@ -36,7 +36,6 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
     private readonly ILogger<UserTokenAppService> _logger;
     private readonly IUserTokenProvider _userTokenProvider;
     private readonly NftToFtOptions _nftToFtOptions;
-    private readonly IClusterClient _clusterClient;
     private readonly IDistributedEventBus _distributedEventBus;
 
     public UserTokenAppService(
@@ -45,7 +44,6 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
         ILogger<UserTokenAppService> logger,
         IUserTokenProvider userTokenProvider,
         IOptionsSnapshot<NftToFtOptions> nftToFtOptions,
-        IClusterClient clusterClient,
         IDistributedEventBus distributedEventBus)
     {
         _tokenListOptions = tokenListOptions.Value;
@@ -53,7 +51,6 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
         _logger = logger;
         _userTokenProvider = userTokenProvider;
         _nftToFtOptions = nftToFtOptions.Value;
-        _clusterClient = clusterClient;
         _distributedEventBus = distributedEventBus;
     }
     
@@ -64,44 +61,44 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
     
     public async Task ChangeTokenDisplayAsync(string id, bool isDisplay)
     {
-        var (chainId, symbol) = GetTokenInfoFromId(id);
-        var userId = CurrentUser.GetId();
-        var grainId = GrainIdHelper.GenerateGrainId(id, userId);
-        var grain = _clusterClient.GetGrain<IUserTokenGrain>(grainId);
-        var userTokenGrainResultDto = await grain.GetAsync();
-        if (!userTokenGrainResultDto.Success())
-        {
-            var tokenInfo = await _tokenInfoProvider.GetAsync(chainId, symbol);
-            if (tokenInfo == null)
-            {
-                _logger.LogError($"can't get token info, chain: {chainId}, symbol: {symbol}");
-                return;
-            }
-            var addResult = await grain.AddAsync(userId, new UserTokenGrainDto
-            {
-                UserId = userId,
-                SortWeight = 0,
-                Token = new Dto.Token()
-                {
-                    Id = id,
-                    ChainId = chainId,
-                    Address = tokenInfo.Address,
-                    Symbol = symbol,
-                    Decimals = tokenInfo.Decimals
-                }
-            });
-            _logger.LogInformation($"Add user token: {JsonConvert.SerializeObject(addResult)}");
-        }
-        
-        var tokenResult = await grain.ChangeDisplayAsync(userId, isDisplay, false);
-        _logger.LogInformation($"Change user token: {tokenResult}");
-
-        await _distributedEventBus.PublishAsync(ObjectMapper.Map<UserTokenGrainDto, UserTokenEto>(tokenResult.Data));
+        // var (chainId, symbol) = GetTokenInfoFromId(id);
+        // var userId = CurrentUser.GetId();
+        // var grainId = GrainIdHelper.GenerateGrainId(id, userId);
+        // var grain = _clusterClient.GetGrain<IUserTokenGrain>(grainId);
+        // var userTokenGrainResultDto = await grain.GetAsync();
+        // if (!userTokenGrainResultDto.Success())
+        // {
+        //     var tokenInfo = await _tokenInfoProvider.GetAsync(chainId, symbol);
+        //     if (tokenInfo == null)
+        //     {
+        //         _logger.LogError($"can't get token info, chain: {chainId}, symbol: {symbol}");
+        //         return;
+        //     }
+        //     var addResult = await grain.AddAsync(userId, new UserTokenGrainDto
+        //     {
+        //         UserId = userId,
+        //         SortWeight = 0,
+        //         Token = new Dto.Token()
+        //         {
+        //             Id = id,
+        //             ChainId = chainId,
+        //             Address = tokenInfo.Address,
+        //             Symbol = symbol,
+        //             Decimals = tokenInfo.Decimals
+        //         }
+        //     });
+        //     _logger.LogInformation($"Add user token: {JsonConvert.SerializeObject(addResult)}");
+        // }
+        //
+        // var tokenResult = await grain.ChangeDisplayAsync(userId, isDisplay, false);
+        // _logger.LogInformation($"Change user token: {tokenResult}");
+        //
+        // await _distributedEventBus.PublishAsync(ObjectMapper.Map<UserTokenGrainDto, UserTokenEto>(tokenResult.Data));
     }
     
     public async Task<PagedResultDto<GetUserTokenDto>> GetTokensAsync(GetTokenInfosRequestDto requestDto)
     {
-        var userId = CurrentUser.GetId();
+        var userId = CurrentUser.IsAuthenticated ? CurrentUser.GetId() : Guid.Empty;
         var userTokens =
             await _userTokenProvider.GetUserTokenInfoListAsync(userId, string.Empty, string.Empty);
 

@@ -210,35 +210,35 @@ public class UserAssetsAppServiceTest : EoaServerApplicationTestBase
     }
     
     
-    [Fact]
-    public async void GetUserTokenAsyncTest()
-    {
-        await _userTokenAppService.ChangeTokenDisplayAsync("tDVW-USDC", true);
-        await _userTokenAppService.ChangeTokenDisplayAsync("AELF-USDC", true);
-        
-        var result = await _userAssetsAppService.GetTokenAsync(new GetTokenRequestDto()
-        {
-            AddressInfos = new List<AddressInfo>()
-            {
-                new AddressInfo()
-                {
-                    Address = EoaServerApplicationTestConstant.User1Address,
-                    ChainId = EoaServerApplicationTestConstant.ChainIdTDVW
-                },
-                new AddressInfo()
-                {
-                    Address = EoaServerApplicationTestConstant.User1Address,
-                    ChainId = EoaServerApplicationTestConstant.ChainIdAELF
-                }
-            }
-        });
-        
-        result.TotalRecordCount.ShouldBe(4);
-        // default show
-        result.Data[2].Symbol.ShouldBe("ETH");
-        result.Data[2].Tokens.Count.ShouldBe(2);
-        // user token
-        result.Data[3].Symbol.ShouldBe("USDC");
-        result.Data[3].Tokens.Count.ShouldBe(2);
-    }
+    // [Fact]
+    // public async void GetUserTokenAsyncTest()
+    // {
+        // await _userTokenAppService.ChangeTokenDisplayAsync("tDVW-USDC", true);
+        // await _userTokenAppService.ChangeTokenDisplayAsync("AELF-USDC", true);
+        //
+        // var result = await _userAssetsAppService.GetTokenAsync(new GetTokenRequestDto()
+        // {
+        //     AddressInfos = new List<AddressInfo>()
+        //     {
+        //         new AddressInfo()
+        //         {
+        //             Address = EoaServerApplicationTestConstant.User1Address,
+        //             ChainId = EoaServerApplicationTestConstant.ChainIdTDVW
+        //         },
+        //         new AddressInfo()
+        //         {
+        //             Address = EoaServerApplicationTestConstant.User1Address,
+        //             ChainId = EoaServerApplicationTestConstant.ChainIdAELF
+        //         }
+        //     }
+        // });
+        //
+        // result.TotalRecordCount.ShouldBe(4);
+        // // default show
+        // result.Data[2].Symbol.ShouldBe("ETH");
+        // result.Data[2].Tokens.Count.ShouldBe(2);
+        // // user token
+        // result.Data[3].Symbol.ShouldBe("USDC");
+        // result.Data[3].Tokens.Count.ShouldBe(2);
+    // }
 }

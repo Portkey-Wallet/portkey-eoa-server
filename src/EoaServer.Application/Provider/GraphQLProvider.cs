@@ -1,15 +1,12 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using EoaServer.Options;
 using EoaServer.Provider.Dto.Indexer;
 using EoaServer.Token;
-using EoaServer.Token.Dto;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.Extensions.Options;
-using Orleans;
 using Serilog;
 using Volo.Abp.DependencyInjection;
 
@@ -20,23 +17,18 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
     private readonly GraphQLOptions _graphQLOptions;
     private readonly GraphQLHttpClient _blockChainIndexerClient;
     private readonly GraphQLHttpClient _tokenIndexerClient;
-    private readonly IClusterClient _clusterClient;
     private readonly ILogger _logger;
-    private readonly ITokenAppService _tokenAppService;
 
     public const string TokenIndexer = "TokenIndexer";
     public const string BlockChainIndexer = "BlockChainIndexer";
 
-    public GraphQLProvider(IClusterClient clusterClient,
-        ITokenAppService tokenAppService,
+    public GraphQLProvider(
         IOptionsSnapshot<GraphQLOptions> graphQLOptions)
     {
         _logger = Log.ForContext<GraphQLProvider>();
-        _clusterClient = clusterClient;
         _graphQLOptions = graphQLOptions.Value;
         _blockChainIndexerClient = new GraphQLHttpClient(_graphQLOptions.IndexerOptions[BlockChainIndexer].BaseUrl, new NewtonsoftJsonSerializer());
         _tokenIndexerClient = new GraphQLHttpClient(_graphQLOptions.IndexerOptions[TokenIndexer].BaseUrl, new NewtonsoftJsonSerializer());
-        _tokenAppService = tokenAppService;
     }
 
     public async Task<IndexerTokenTransferListDto> GetTokenTransferInfoAsync(GetTokenTransferRequestDto requestDto)

@@ -37,7 +37,7 @@ public class UserTokenController : EoaServerBaseController
         await _userTokenAppService.ChangeTokenDisplayAsync(id, input.IsDisplay);
     }
 
-    [HttpGet, Authorize]
+    [HttpGet]
     public async Task<PagedResultDto<GetUserTokenDto>> GetTokensAsync(GetTokenInfosRequestDto requestDto)
     {
         return await _userTokenAppService.GetTokensAsync(requestDto);
