@@ -5,8 +5,6 @@ using AElf.Indexing.Elasticsearch;
 using EoaServer.Entities.Es;
 using EoaServer.Search.Dto;
 using Nest;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Auditing;
@@ -36,10 +34,6 @@ public class SearchAppService : EoaServerBaseService, ISearchAppService
 
         var (totalCount, list) = await _chainsInfoRepository.GetListAsync(Filter);
 
-        var serializeSetting = new JsonSerializerSettings
-        {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
         return new PagedResultDto<ChainsInfoDto>
         {
             TotalCount = totalCount,
