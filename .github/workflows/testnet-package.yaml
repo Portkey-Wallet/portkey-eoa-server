@@ -10,7 +10,7 @@ jobs:
     runs-on: portkey-runner
     strategy:
       matrix:
-        servicename: [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer]
+        servicename: [EoaServer.HttpApi.Host]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -28,7 +28,7 @@ jobs:
     runs-on: portkey-runner
     strategy:
       matrix:
-        servicename: [EoaServer.Silo,EoaServer.HttpApi.Host,EoaServer.EntityEventHandler,EoaServer.AuthServer]
+        servicename: [EoaServer.HttpApi.Host]
     permissions:
       contents: read
     outputs:

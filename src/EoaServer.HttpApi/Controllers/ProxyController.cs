@@ -9,7 +9,7 @@ namespace EoaServer.Controllers;
 [RemoteService]
 [Area("proxy")]
 [ControllerName("Proxy")]
-[Route("proxy")]
+[Route("/api/app/proxy")]
 public class ProxyController : EoaServerBaseController
 {
     private readonly IProxyService _proxyService;
