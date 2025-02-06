@@ -5,6 +5,7 @@ using AutoResponseWrapper;
 using Confluent.Kafka;
 using EoaServer.Common;
 using EoaServer.MongoDb;
+using EoaServer.Transfer;
 using Medallion.Threading;
 using Medallion.Threading.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -198,6 +199,7 @@ public class EoaServerHttpApiHostModule : AbpModule
         }
         
         app.UseConfiguredEndpoints();
+        context.ServiceProvider.GetService<IShiftChainService>().InitAsync();
         ConfigurationProvidersHelper.DisplayConfigurationProviders(context);
     }
 

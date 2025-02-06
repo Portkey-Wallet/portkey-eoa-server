@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using EoaServer.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Nest;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -34,9 +35,6 @@ public class ProxyService : EoaServerBaseService, IProxyService
         var response = await _httpClient.SendAsync(targetRequest, HttpCompletionOption.ResponseHeadersRead);
         var responseBody = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<object?>(responseBody);
-        return new JsonResult(result)
-        {
-            ContentType = "application/json"
-        };
+        return result;
     }
 }

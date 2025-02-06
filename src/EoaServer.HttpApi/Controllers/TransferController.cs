@@ -22,15 +22,15 @@ public class TransferController : EoaServerBaseController
     }
 
     [HttpGet("getReceiveNetworkList")]
-    public async Task<ResponseWrapDto<ReceiveNetworkDto>> GetNetworkListBySymbolAsync(
+    public async Task<ReceiveNetworkDto> GetNetworkListBySymbolAsync(
         GetReceiveNetworkListRequestDto request)
     {
-        return await _shiftChainService.GetReceiveNetworkList(request);
+        return (await _shiftChainService.GetReceiveNetworkList(request)).Data;
     }
 
     [HttpGet("getSendNetworkList")]
-    public async Task<ResponseWrapDto<SendNetworkDto>> GetDestinationList(GetSendNetworkListRequestDto request)
+    public async Task<SendNetworkDto> GetDestinationList(GetSendNetworkListRequestDto request)
     {
-        return await _shiftChainService.GetSendNetworkList(request);
+        return (await _shiftChainService.GetSendNetworkList(request)).Data;
     }
 }

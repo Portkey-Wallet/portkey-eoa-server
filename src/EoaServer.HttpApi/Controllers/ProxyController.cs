@@ -23,6 +23,6 @@ public class ProxyController : EoaServerBaseController
     [Route("{**proxyUrl}")]
     public async Task<object> ProxyAsync(string proxyUrl)
     {
-        return await _proxyService.ProxyGetRequestAsync(proxyUrl);
+        return await _proxyService.ProxyGetRequestAsync(proxyUrl + Request.QueryString.Value);
     }
 }
