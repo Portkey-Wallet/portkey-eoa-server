@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using EoaServer.Awaken;
 using EoaServer.Entities.Es;
 using EoaServer.Grain.UserToken;
 using EoaServer.Options;
@@ -17,5 +18,6 @@ public class EoaServerApplicationAutoMapperProfile : Profile
         CreateMap<EoaServer.Options.Token, EoaServer.Entities.Es.Token>();
         CreateMap<ChainsInfoIndex, ChainsInfoDto>();
         CreateMap<DefaultTokenInfo, DefaultTokenInfoDto>();
+        CreateMap<TradePairsItemToken, UserAssets.Dtos.Token>();
     }
 }

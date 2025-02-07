@@ -120,6 +120,14 @@ public class UserTokenAppService : EoaServerBaseService, IUserTokenAppService
                 IsDefault = userToken.IsDefault,
                 IsDisplay = userToken.IsDisplay
             };
+            
+            var nftToFtInfo = _nftToFtOptions.NftToFtInfos.GetOrDefault(getUserTokenDto.Symbol);
+            if (nftToFtInfo != null)
+            {
+                getUserTokenDto.Label = nftToFtInfo.Label;
+                getUserTokenDto.ImageUrl = nftToFtInfo.ImageUrl;
+            }
+            
             tokens.Add(getUserTokenDto);
         }
         

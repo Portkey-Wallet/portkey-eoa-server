@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EoaServer.Awaken;
 using EoaServer.Common;
 using EoaServer.Commons;
 using EoaServer.Options;
@@ -13,6 +14,7 @@ using EoaServer.UserAssets.Provider;
 using EoaServer.UserToken;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -37,6 +39,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
     private readonly ILogger<UserAssetsAppService> _logger;
     private readonly IAElfScanDataProvider _aelfScanDataProvider;
     private readonly IUserTokenProvider _userTokenProvider;
+    private readonly AwakenOptions _awakenOptions;
+    private readonly IHttpClientService _httpClientService;
+    private readonly TokenInfoOptions _tokenInfoOptions;
+    private readonly NftToFtOptions _nftToFtOptions;
 
     public UserAssetsAppService(
         IOptionsSnapshot<TokenListOptions> tokenListOptions,
@@ -48,7 +54,11 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         ILogger<UserAssetsAppService> logger,
         IOptionsSnapshot<NftItemDisplayOption> nftItemDisplayOptions,
         IAElfScanDataProvider aelfScanDataProvider,
-        IUserTokenProvider userTokenProvider)
+        IUserTokenProvider userTokenProvider,
+        IOptionsSnapshot<AwakenOptions> awakenOptions,
+        IHttpClientService httpClientService,
+        IOptionsSnapshot<TokenInfoOptions> tokenInfoOptions,
+        IOptionsSnapshot<NftToFtOptions> nftToFtOptions)
     {
         _tokenListOptions = tokenListOptions.Value;
         _seedImageOptions = seedImageOptions.Value;
@@ -60,6 +70,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         _nftItemDisplayOption = nftItemDisplayOptions.Value;
         _aelfScanDataProvider = aelfScanDataProvider;
         _userTokenProvider = userTokenProvider;
+        _awakenOptions = awakenOptions.Value;
+        _httpClientService = httpClientService;
+        _tokenInfoOptions = tokenInfoOptions.Value;
+        _nftToFtOptions = nftToFtOptions.Value;
     }
     
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
@@ -466,6 +480,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 ? _chainOptions.ChainInfos[fromTokenInfoDto.ChainIds[0]].TokenContractAddress
                 : null;
             
+            var nftToFtInfo = _nftToFtOptions.NftToFtInfos.GetOrDefault(fromTokenInfoDto.Token.Symbol);
             var token = new Dtos.Token
             {
                 ChainId = fromTokenInfoDto.ChainIds[0],
@@ -477,6 +492,12 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 TokenContractAddress = tokenContractAddress,
                 ImageUrl = fromTokenInfoDto.Token.ImageUrl,
             };
+            if (nftToFtInfo != null)
+            {
+                token.Label = nftToFtInfo.Label;
+                token.ImageUrl = nftToFtInfo.ImageUrl;
+            }
+            
             
             var resultTokenInfo = result.Data.FirstOrDefault(t => t.Symbol == fromTokenInfoDto.Token.Symbol);
             if (resultTokenInfo == null)
@@ -489,7 +510,8 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                     Decimals = fromTokenInfoDto.Token.Decimals,
                     BalanceInUsd = fromTokenInfoDto.ValueOfUsd.ToString(),
                     TokenContractAddress = tokenContractAddress,
-                    ImageUrl = fromTokenInfoDto.Token.ImageUrl,
+                    ImageUrl = token.ImageUrl,
+                    Label = token.Label,
                     Tokens = new List<Dtos.Token>()
                     {
                         token
@@ -520,7 +542,8 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                         Decimals = tokenWithoutChain.Decimals,
                         BalanceInUsd = "0",
                         TokenContractAddress = _chainOptions.ChainInfos[addressInfo.ChainId].TokenContractAddress,
-                        ImageUrl = tokenWithoutChain.ImageUrl
+                        ImageUrl = tokenWithoutChain.ImageUrl,
+                        Label = tokenWithoutChain.Label
                     });
                 }
             }
@@ -590,6 +613,124 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 },
                 Type = SymbolType.Token
             });
+        }
+    }
+
+    public async Task<AwakenSupportedTokenResponse> ListAwakenSupportedTokensAsync(int skipCount, int maxResultCount, int page, string chainId, string caAddress)
+    {
+        var awakenUrl = _awakenOptions.Domain +
+                        $"/api/app/trade-pairs?skipCount={skipCount}&maxResultCount={maxResultCount}&page={page}&chainId={chainId}";
+        var response = await _httpClientService.GetAsync<CommonResponseDto<TradePairsDto>>(awakenUrl);
+        if (!response.Success || response.Data == null || response.Data.Items.IsNullOrEmpty())
+        {
+            return new AwakenSupportedTokenResponse()
+            {
+                Total = 0,
+                Data = new List<Dtos.Token>()
+            };
+        }
+
+        var tokens0 = response.Data.Items.Select(item => item.Token0).Distinct(new TokenComparer()).ToList();
+        var tokens1 = response.Data.Items.Select(item => item.Token1).Distinct(new TokenComparer()).ToList();
+        tokens0.AddRange(tokens1);
+        var tokens = tokens0.Distinct(new TokenComparer()).ToList();
+        var result = ObjectMapper.Map<List<TradePairsItemToken>, List<UserAssets.Dtos.Token>>(tokens);
+        var symbolToToken = await ListSideChainUserTokens(chainId, caAddress, tokens);
+        var tokenImageDic = _tokenInfoOptions.TokenInfos.ToDictionary(k => k.Key, v => v.Value.ImageUrl);
+        foreach (var token in result)
+        {
+            ChainDisplayNameHelper.SetDisplayName(token);
+            if (!symbolToToken.TryGetValue(token.Symbol, out var userToken))
+            {
+                token.Balance = "0";
+                token.BalanceInUsd = "0";
+            }
+            else
+            {
+                token.Balance = userToken.Balance;
+                token.BalanceInUsd = userToken.BalanceInUsd;
+                token.Price = token.Price == 0 ? userToken.Price : token.Price;
+            }
+
+            token.ImageUrl = _tokenInfoProvider.BuildSymbolImageUrl(token.Symbol);
+            var nftToFtInfo = _nftToFtOptions.NftToFtInfos.GetOrDefault(token.Symbol);
+            if (nftToFtInfo != null)
+            {
+                token.Label = nftToFtInfo.Label;
+                token.ImageUrl = nftToFtInfo.ImageUrl;
+            }
+        }
+
+        result = SortTokens(result);
+        result = result.Skip(skipCount).Take(maxResultCount).ToList();
+        return new AwakenSupportedTokenResponse()
+        {
+            Total = result.Count,
+            Data = result
+        };
+    }
+    
+    private async Task<Dictionary<string, Dtos.Token>> ListSideChainUserTokens(string chainId, string address,
+        List<TradePairsItemToken> tokens)
+    {
+        var userTokens = new List<Dtos.Token>();
+        var userTokenInfos = await _aelfScanDataProvider.GetAddressTokenAssetsAsync(chainId, address);
+        if (userTokenInfos == null || userTokenInfos.List.IsNullOrEmpty())
+        {
+            return new Dictionary<string, Dtos.Token>();
+        }
+
+        var symbols = tokens.Select(t => t.Symbol).Distinct().ToList();
+        foreach (var tokenInfoDto in userTokenInfos.List)
+        {
+            if (!symbols.Contains(tokenInfoDto.Token.Symbol))
+            {
+                continue;
+            }
+
+            var awakenToken = tokens.First(t => t.Symbol == tokenInfoDto.Token.Symbol);
+            var token = new Dtos.Token()
+            {
+                Decimals = awakenToken.Decimals,
+                Symbol = tokenInfoDto.Token.Symbol,
+                Balance = ((long)((double)tokenInfoDto.Quantity * Math.Pow(10, awakenToken.Decimals))).ToString(),
+                BalanceInUsd = tokenInfoDto.ValueOfUsd.ToString(),
+                ChainId = chainId,
+                Price = tokenInfoDto.PriceOfUsd,
+            };
+            userTokens.Add(token);
+        }
+        
+        try
+        {
+            return userTokens.ToDictionary(token => token.Symbol, token => token);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "sideChainUserTokens.ToDictionary error");
+            return new Dictionary<string, Dtos.Token>();
+        }
+    }
+
+    private List<Dtos.Token> SortTokens(List<Dtos.Token> tokens)
+    {
+        var defaultSymbols = _tokenListOptions.UserToken.Select(t => t.Token.Symbol).Distinct().ToList();
+
+        try
+        {
+            return tokens.OrderBy(t => decimal.Parse(t.Balance) == 0)
+                .ThenBy(t => t.Symbol != CommonConstant.ELF)
+                .ThenBy(t => !defaultSymbols.Contains(t.Symbol))
+                .ThenBy(t => Array.IndexOf(defaultSymbols.ToArray(), t.Symbol))
+                .ThenBy(t => t.Symbol)
+                .ThenBy(t => t.ChainId)
+                .ToList();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "illegal tokens:{0}",
+                JsonConvert.SerializeObject(tokens.Where(t => t.Balance.IsNullOrEmpty()).ToList()));
+            return tokens;
         }
     }
 }

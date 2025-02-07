@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Asp.Versioning;
+using EoaServer.Awaken;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -42,5 +43,15 @@ public class UserAssetsController : EoaServerBaseController
     public async Task<GetNftItemsDto> GetNFTItemsAsync(GetNftItemsRequestDto requestDto)
     {
         return await _userAssetsAppService.GetNFTItemsAsync(requestDto);
+    }
+    
+    [HttpGet("awaken/token")]
+    public async Task<AwakenSupportedTokenResponse> ListAwakenSupportedTokensAsync(int skipCount, int maxResultCount,
+        int page, string chainId, string caAddress)
+    {
+        skipCount = skipCount <= 0 ? 0 : skipCount;
+        maxResultCount = maxResultCount <= 0 ? 100 : maxResultCount;
+        page = page <= 1 ? 1 : page;
+        return await _userAssetsAppService.ListAwakenSupportedTokensAsync(skipCount, maxResultCount, page, chainId, caAddress);
     }
 }

@@ -55,5 +55,6 @@ public class EoaServerApplicationModule : AbpModule
         Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
         Configure<AwsThumbnailOptions>(configuration.GetSection("AWSThumbnail"));
         Configure<GraphQLOptions>(configuration.GetSection("GraphQLOptions"));
+        Configure<AwakenOptions>(configuration.GetSection("AwakenConfig"));
     }
 }

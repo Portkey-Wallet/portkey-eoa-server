@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using EoaServer.Awaken;
 using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 
@@ -9,4 +10,6 @@ public interface IUserAssetsAppService
     Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto);
     Task<GetNftCollectionsDto> GetNFTCollectionsAsync(GetNftCollectionsRequestDto requestDto);
     Task<GetNftItemsDto> GetNFTItemsAsync(GetNftItemsRequestDto requestDto);
+    Task<AwakenSupportedTokenResponse> ListAwakenSupportedTokensAsync(int skipCount, int maxResultCount,
+        int page, string chainId, string caAddress);
 }
