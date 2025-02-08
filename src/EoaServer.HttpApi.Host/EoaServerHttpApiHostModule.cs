@@ -62,7 +62,7 @@ public class EoaServerHttpApiHostModule : AbpModule
         ConfigureCors(context, configuration);
         ConfigureSwaggerServices(context, configuration);
         ConfigureTokenCleanupService();
-        ConfigureKafka(context, configuration);
+        // ConfigureKafka(context, configuration);
         context.Services.AddAutoResponseWrapper();
         context.Services.AddHttpContextAccessor();
     }

@@ -4,7 +4,6 @@ namespace EoaServer.Transfer.Dtos;
 
 public class ETransferAuthTokenRequestDto
 {
-    [FromForm(Name = "ca_hash")] public string CaHash { get; set; }
     [FromForm(Name = "chain_id")] public string ChainId { get; set; }
     [FromForm(Name = "managerAddress")] public string ManagerAddress { get; set; }
     [FromForm(Name = "plain_text")] public string PlainText { get; set; }

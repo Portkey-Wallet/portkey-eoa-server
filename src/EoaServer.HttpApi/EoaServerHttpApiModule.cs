@@ -19,8 +19,8 @@ namespace EoaServer;
     typeof(AbpPermissionManagementHttpApiModule),
     typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpFeatureManagementHttpApiModule),
-    typeof(AbpSettingManagementHttpApiModule),
-    typeof(AbpEventBusKafkaModule)
+    typeof(AbpSettingManagementHttpApiModule)
+    // typeof(AbpEventBusKafkaModule)
     )]
 public class EoaServerHttpApiModule : AbpModule
 {
