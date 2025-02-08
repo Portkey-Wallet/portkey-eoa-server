@@ -8,4 +8,5 @@ public class AuthTokenRequestDto
     [FromForm(Name = "plain_text")] public string PlainText { get; set; }
     public string Pubkey { get; set; }
     public string Signature { get; set; }
+    public string RecaptchaToken { get; set; }
 }

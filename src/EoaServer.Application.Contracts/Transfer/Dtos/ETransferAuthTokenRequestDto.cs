@@ -14,4 +14,5 @@ public class ETransferAuthTokenRequestDto
     [FromForm(Name = "version")] public string Version { get; set; }
     [FromForm(Name = "source")] public string Source { get; set; }
     [FromForm(Name = "scope")]public string Scope { get; set; }
+    [FromForm(Name = "recaptchaToken")]public string RecaptchaToken { get; set; }
 }
