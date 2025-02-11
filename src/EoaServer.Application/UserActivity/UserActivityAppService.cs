@@ -76,7 +76,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                     .Concat(txn.NftsTransferreds
                         .Select(transfer => transfer.Symbol)))
         );
-        var tokenMap = await GetTokenMapAsync(tokens);
+        var tokenMap = await _tokenInfoProvider.GetTokenMapAsync(tokens);
         return await ConvertDtoAsync(request.ChainId, txnDto.List[0], tokenMap, 0, 0, request.AddressInfos[0].Address);
     }
 
@@ -169,7 +169,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         .Select(transfer => transfer.Symbol)))
         );
         
-        var tokenMap = await GetTokenMapAsync(tokens);
+        var tokenMap = await _tokenInfoProvider.GetTokenMapAsync(tokens);
         var activityDtos = new List<GetActivityDto>();
         foreach (var txn in transactions)
         {
@@ -192,29 +192,6 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         };
     }
 
-    private async Task<Dictionary<string, TokenInfoDto>> GetTokenMapAsync(HashSet<string> tokens)
-    {
-        var result = tokens.ToDictionary(t => t, t => new TokenInfoDto());
-
-        var sideChain = _chainOptions.ChainInfos.FirstOrDefault(t => t.Value.IsMainChain == false);
-        var tokenChain = sideChain.Value.ChainId;
-        
-        var mapTasks = result.Select(async token =>
-        {
-            return await _tokenInfoProvider.GetAsync(tokenChain, token.Key);
-        }).ToList();
-
-        var tokenList = await Task.WhenAll(mapTasks);
-        foreach (var tokenInfo in tokenList)
-        {
-            if (tokenInfo != null)
-            {
-                result[tokenInfo.Symbol] = tokenInfo;
-            }
-        }
-        return result;
-    }
-    
     private bool IsETransfer(string transactionType, string fromChainId, string fromAddress)
     {
         if (transactionType == ActivityConstants.TransferName &&

@@ -88,11 +88,20 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
             tokenList.Total += chainTokenList.Total;
             tokenList.List.AddRange(chainTokenList.List);
         }
-        
+
+        var tokenInfoMap = await _tokenInfoProvider.GetTokenMapAsync(tokenList.List.Select( t=> t.Token.Symbol).ToHashSet());
+        foreach (var chainToken in tokenList.List)
+        {
+            if (!tokenInfoMap.TryGetValue(chainToken.Token.Symbol, out var tokenInfoDto))
+            {
+                continue;
+            }
+
+            chainToken.Token.Decimals = tokenInfoDto.Decimals;
+            chainToken.Quantity = (long) ((double) chainToken.Quantity * Math.Pow(10, tokenInfoDto.Decimals));
+        }
+
         AddDefaultTokens(tokenList);
-        
-        await AddUserTokensAsync(tokenList);
-        
         var result = await ConvertDtoAsync(tokenList, requestDto);
         
         result.Data = SortTokens(result.Data);

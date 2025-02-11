@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using EoaServer.Common;
 using EoaServer.Commons;
@@ -18,6 +20,7 @@ public interface ITokenInfoProvider
     Task<TokenInfoDto> GetAsync(string chainId, string symbol);
     string BuildSymbolImageUrl(string symbol);
     string GetTokenId(string chainId, string symbol);
+    Task<Dictionary<string, TokenInfoDto>> GetTokenMapAsync(HashSet<string> tokens);
 }
 
 public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
@@ -68,7 +71,7 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
 
         return $"{_assetsInfoOptions.ImageUrlPrefix}{symbol}{_assetsInfoOptions.ImageUrlSuffix}";
     }
-    
+
     public async Task<TokenInfoDto> GetAsync(string chainId, string symbol)
     {
         var tokenKey = $"{CommonConstant.TokenInfoCachePrefix}:{symbol}:{chainId}";
@@ -106,5 +109,28 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
             AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1)
         });
         return tokenInfo;
+    }
+    
+    public async Task<Dictionary<string, TokenInfoDto>> GetTokenMapAsync(HashSet<string> tokens)
+    {
+        var result = tokens.ToDictionary(t => t, t => new TokenInfoDto());
+
+        var sideChain = _chainOptions.ChainInfos.FirstOrDefault(t => t.Value.IsMainChain == false);
+        var tokenChain = sideChain.Value.ChainId;
+        
+        var mapTasks = result.Select(async token =>
+        {
+            return await GetAsync(tokenChain, token.Key);
+        }).ToList();
+
+        var tokenList = await Task.WhenAll(mapTasks);
+        foreach (var tokenInfo in tokenList)
+        {
+            if (tokenInfo != null)
+            {
+                result[tokenInfo.Symbol] = tokenInfo;
+            }
+        }
+        return result;
     }
 }
