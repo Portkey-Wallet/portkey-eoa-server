@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using EoaServer.Token;
 
 namespace EoaServer.Controllers;
@@ -34,5 +35,11 @@ public class TokenController : EoaServerBaseController
     public async Task<List<GetTokenListDto>> GetTokenListAsync(GetTokenListRequestDto input)
     {
         return await _tokenAppService.GetTokenListAsync(input);
+    }
+    
+    [HttpGet("token")]
+    public async Task<TokenInfoDto> GetTokenInfoAsync([Required] string chainId, [Required] string symbol)
+    {
+        return await _tokenAppService.GetTokenInfoAsync(chainId, symbol);
     }
 }

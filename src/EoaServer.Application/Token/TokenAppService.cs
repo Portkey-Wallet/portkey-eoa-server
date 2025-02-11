@@ -208,4 +208,14 @@ public class TokenAppService : EoaServerBaseService, ITokenAppService
             Items = result
         };
     }
+
+    public async Task<TokenInfoDto> GetTokenInfoAsync(string chainId, string symbol)
+    {
+        var tokenType = TokenHelper.GetTokenType(symbol);
+        if (tokenType != TokenType.Token)
+        {
+            return new TokenInfoDto();
+        }
+        return await _tokenInfoProvider.GetAsync(chainId, symbol);
+    }
 }

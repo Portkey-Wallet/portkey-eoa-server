@@ -7,8 +7,6 @@ using EoaServer.Token.Dto;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Volo.Abp;
-using Volo.Abp.Auditing;
 using Volo.Abp.Caching;
 using Volo.Abp.DependencyInjection;
 
@@ -84,7 +82,7 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
 
         if (tokenInfoResult == null)
         {
-            return null;
+            return new TokenInfoDto();
         }
         
         tokenInfo = new TokenInfoDto
@@ -92,12 +90,18 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
             Symbol = tokenInfoResult.Symbol,
             Decimals = tokenInfoResult.Decimals,
             ChainId = tokenInfoResult.IssueChainId,
-            ImageUri = BuildSymbolImageUrl(tokenInfoResult.Symbol),
+            ImageUrl = BuildSymbolImageUrl(tokenInfoResult.Symbol),
             TokenName = tokenInfoResult.TokenName,
-            Address = _chainOptions.ChainInfos[chainId].TokenContractAddress
+            TokenContractAddress = _chainOptions.ChainInfos[chainId].TokenContractAddress,
+            Id = chainId + "_" + symbol,
+            TotalSupply = tokenInfoResult.TotalSupply,
+            Issuer = tokenInfoResult.Issuer,
+            IsBurnable = tokenInfoResult.IsBurnable,
         };
+        
+        ChainDisplayNameHelper.SetDisplayName(tokenInfo, chainId);
 
-        _tokenInfoCache.SetAsync(tokenKey, tokenInfo, new DistributedCacheEntryOptions
+        await _tokenInfoCache.SetAsync(tokenKey, tokenInfo, new DistributedCacheEntryOptions
         {
             AbsoluteExpiration = CommonConstant.DefaultAbsoluteExpiration
         });
