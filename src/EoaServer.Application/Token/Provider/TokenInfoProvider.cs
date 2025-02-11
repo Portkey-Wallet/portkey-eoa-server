@@ -103,7 +103,7 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
 
         await _tokenInfoCache.SetAsync(tokenKey, tokenInfo, new DistributedCacheEntryOptions
         {
-            AbsoluteExpiration = CommonConstant.DefaultAbsoluteExpiration
+            AbsoluteExpiration = DateTimeOffset.UtcNow.AddHours(1)
         });
         return tokenInfo;
     }
