@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using EoaServer.Common;
 using EoaServer.Commons;
@@ -9,21 +8,14 @@ using EoaServer.Options;
 using EoaServer.Provider;
 using EoaServer.Provider.Dto.Indexer;
 using EoaServer.Token;
-using EoaServer.Token.Dto;
 using EoaServer.UserActivity.Dto;
 using EoaServer.UserActivity.Dtos;
-using EoaServer.UserAssets;
 using EoaServer.UserAssets.Dtos;
 using EoaServer.UserAssets.Provider;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using Volo.Abp;
 using Volo.Abp.Auditing;
-using Newtonsoft.Json;
-using JsonConvert = Newtonsoft.Json.JsonConvert;
 using TokenInfoDto = EoaServer.Token.Dto.TokenInfoDto;
 
 namespace EoaServer.UserActivity;
@@ -34,6 +26,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
 {
     private readonly ILogger<UserActivityAppService> _logger;
     private readonly ActivityOptions _activityOptions;
+    private readonly ActivitiesStatusIconOptions _activityStatusIconOptions;
     private readonly TokenSpenderOptions _tokenSpenderOptions;
     private readonly ChainOptions _chainOptions;
     private readonly ITokenInfoProvider _tokenInfoProvider;
@@ -43,6 +36,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     
     public UserActivityAppService(ILogger<UserActivityAppService> logger,
         IOptionsSnapshot<ActivityOptions> activityOptions,
+        IOptionsSnapshot<ActivitiesStatusIconOptions> activityStatusIconOptions,
         IOptionsSnapshot<TokenSpenderOptions> tokenSpenderOptions,
         IOptionsSnapshot<ChainOptions> chainOptions,
         ITokenInfoProvider tokenInfoProvider,
@@ -52,6 +46,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
     {
         _logger = logger;
         _activityOptions = activityOptions.Value;
+        _activityStatusIconOptions = activityStatusIconOptions.Value;
         _tokenSpenderOptions = tokenSpenderOptions.Value;
         _chainOptions = chainOptions.Value;
         _tokenInfoProvider = tokenInfoProvider;
@@ -416,8 +411,53 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         }
         
         activityDto.ListIcon = activityDto.Operations.FirstOrDefault()?.Icon;
-        
+        MapMethodNameAsync(activityDto, activityDto.To);
         return activityDto;
+    }
+    
+    private void MapMethodNameAsync(GetActivityDto activityDto,
+        string toContractAddress)
+    {
+        var transactionType = activityDto.TransactionType;
+        var typeName =
+            _activityOptions.TypeMap.GetValueOrDefault(transactionType, transactionType);
+        activityDto.TransactionName = typeName;
+
+        if (transactionType is ActivityConstants.TransferName or ActivityConstants.CrossChainTransferName)
+        {
+            activityDto.TransactionName =
+                activityDto.IsReceived ? ActivityConstants.ReceiveName : ActivityConstants.SendName;
+            activityDto.StatusIcon = activityDto.IsReceived ? _activityStatusIconOptions.Receive : _activityStatusIconOptions.Send;
+        }
+
+        if (IsETransfer(transactionType, activityDto.FromChainId, activityDto.FromAddress))
+        {
+            activityDto.TransactionName = ActivityConstants.DepositName;
+            activityDto.StatusIcon = _activityStatusIconOptions.Receive;
+            return;
+        }
+        if (activityDto.NftInfo != null && !string.IsNullOrWhiteSpace(activityDto.NftInfo.NftId))
+        {
+            var nftTransactionName =
+                (transactionType is ActivityConstants.TransferName or ActivityConstants.CrossChainTransferName)
+                    ? activityDto.TransactionName
+                    : typeName;
+
+            activityDto.TransactionName = _activityOptions.ShowNftTypes.Contains(activityDto.TransactionType)
+                ? nftTransactionName + " NFT"
+                : nftTransactionName;
+        }
+        
+        activityDto.TransactionType =
+            _activityOptions.TransactionTypeMap.GetValueOrDefault(transactionType, transactionType);
+
+        var contractConfig =
+            _activityOptions.ContractConfigs.FirstOrDefault(t => t.ContractAddress == toContractAddress);
+        if (contractConfig == null) return;
+
+        activityDto.TransactionName = contractConfig.MethodNameMap.ContainsKey(transactionType)
+            ? contractConfig.MethodNameMap[transactionType]
+            : activityDto.TransactionName;
     }
 
     public class TransactionInfo

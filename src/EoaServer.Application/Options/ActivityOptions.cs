@@ -9,6 +9,9 @@ public class ActivityOptions
     public List<ContractConfig> ContractConfigs { get; set; }
     public HamsterConfig HamsterConfig { get; set; }
     public UnknownConfig UnknownConfig { get; set; }
+    public Dictionary<string, string> TypeMap { get; set; }
+    public Dictionary<string, string> TransactionTypeMap { get; set; }
+    public List<string> ShowNftTypes { get; set; }
 }
 
 public class ETransferConfig

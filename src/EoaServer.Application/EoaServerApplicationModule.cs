@@ -41,6 +41,7 @@ public class EoaServerApplicationModule : AbpModule
         Configure<ChainOptions>(configuration.GetSection("Chains"));
         Configure<TokenSpenderOptions>(configuration.GetSection("TokenSpender"));
         Configure<ActivityOptions>(configuration.GetSection("ActivityOptions"));
+        Configure<ActivitiesStatusIconOptions>(configuration.GetSection("ActivitiesStatusIcon"));
         Configure<AElfScanOptions>(configuration.GetSection("AElfScanOptions"));
         Configure<DidServerOptions>(configuration.GetSection("DidServerOptions"));
         Configure<TokenListOptions>(configuration.GetSection("Tokens"));
