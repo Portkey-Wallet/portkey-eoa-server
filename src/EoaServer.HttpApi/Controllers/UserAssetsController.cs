@@ -47,11 +47,11 @@ public class UserAssetsController : EoaServerBaseController
     
     [HttpGet("awaken/token")]
     public async Task<AwakenSupportedTokenResponse> ListAwakenSupportedTokensAsync(int skipCount, int maxResultCount,
-        int page, string chainId, string caAddress)
+        int page, string chainId, string address)
     {
         skipCount = skipCount <= 0 ? 0 : skipCount;
         maxResultCount = maxResultCount <= 0 ? 100 : maxResultCount;
         page = page <= 1 ? 1 : page;
-        return await _userAssetsAppService.ListAwakenSupportedTokensAsync(skipCount, maxResultCount, page, chainId, caAddress);
+        return await _userAssetsAppService.ListAwakenSupportedTokensAsync(skipCount, maxResultCount, page, chainId, address);
     }
 }
