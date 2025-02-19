@@ -59,6 +59,9 @@ public class EoaServerApplicationTestModule : AbpModule
             {
                 NotUnknownContracts = new List<string>()
             };
+            options.TypeMap = new Dictionary<string, string>();
+            options.TransactionTypeMap = new Dictionary<string, string>();
+            options.ShowNftTypes = new List<string>();
         });
 
         Configure<TokenSpenderOptions>(options =>

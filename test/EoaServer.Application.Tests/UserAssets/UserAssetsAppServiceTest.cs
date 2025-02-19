@@ -54,17 +54,17 @@ public class UserAssetsAppServiceTest : EoaServerApplicationTestBase
         result.Data.Count.ShouldBe(3);
         result.Data[0].Symbol.ShouldBe("ELF");
         result.Data[0].ImageUrl.ShouldBe(EoaServerApplicationTestConstant.TokenElfIcon);
-        result.Data[0].Balance.ShouldBe("3");
+        result.Data[0].Balance.ShouldBe("300000000");
         result.Data[0].Tokens.Count.ShouldBe(2);
         result.Data[0].Tokens[0].ChainId.ShouldBe(EoaServerApplicationTestConstant.ChainIdTDVW);
-        result.Data[0].Tokens[0].Balance.ShouldBe("1");
+        result.Data[0].Tokens[0].Balance.ShouldBe("100000000");
         result.Data[0].Tokens[1].ChainId.ShouldBe(EoaServerApplicationTestConstant.ChainIdAELF);
-        result.Data[0].Tokens[1].Balance.ShouldBe("2");
+        result.Data[0].Tokens[1].Balance.ShouldBe("200000000");
         result.Data[1].Symbol.ShouldBe("SGR-1");
         result.Data[1].Tokens.Count.ShouldBe(2);
-        result.Data[1].Balance.ShouldBe("1");
+        result.Data[1].Balance.ShouldBe("100000000");
         result.Data[1].Tokens[0].ChainId.ShouldBe(EoaServerApplicationTestConstant.ChainIdTDVW);
-        result.Data[1].Tokens[0].Balance.ShouldBe("1");
+        result.Data[1].Tokens[0].Balance.ShouldBe("100000000");
         result.Data[1].Tokens[1].ChainId.ShouldBe(EoaServerApplicationTestConstant.ChainIdAELF);
         result.Data[1].Tokens[1].Balance.ShouldBe("0");
         // default show
