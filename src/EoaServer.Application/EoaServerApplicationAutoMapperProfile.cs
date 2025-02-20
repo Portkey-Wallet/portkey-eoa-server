@@ -7,6 +7,8 @@ using EoaServer.Options;
 using EoaServer.Search.Dto;
 using EoaServer.Token.Eto;
 using EoaServer.Transfer.Dtos;
+using EoaServer.UserAssets.Dto;
+using EoaServer.UserAssets.Dtos;
 
 namespace EoaServer;
 
@@ -21,6 +23,8 @@ public class EoaServerApplicationAutoMapperProfile : Profile
         CreateMap<ChainsInfoIndex, ChainsInfoDto>();
         CreateMap<DefaultTokenInfo, DefaultTokenInfoDto>();
         CreateMap<TradePairsItemToken, UserAssets.Dtos.Token>();
+        CreateMap<UserAssets.Dtos.Token, TokenInfoV2Dto>();
+        CreateMap<NftItem, NftInfoDto>();
         CreateMap<AuthTokenRequestDto, ETransferAuthTokenRequestDto>().ForMember(des => des.ClientId,
                 opt => opt.MapFrom(f => ETransferConstant.ClientId))
             .ForMember(des => des.GrantType,

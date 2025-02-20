@@ -119,13 +119,6 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         var txns = new IndexerTransactionListResultDto();
         var tokenTransfers = new IndexerTokenTransferListDto();
         
-        var txnsTask = _graphqlProvider.GetTransactionsAsync(new TransactionsRequestDto()
-        {
-            ChainId = chainId,
-            Address = address,
-            SkipCount = 0,
-            MaxResultCount = request.SkipCount + request.MaxResultCount
-        });
         var tokenTransfersTask = _graphqlProvider.GetTokenTransferInfoAsync(new GetTokenTransferRequestDto()
         {
             Address = address,
@@ -135,10 +128,25 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             Symbol = request.Symbol
         });
 
-        await Task.WhenAll(txnsTask, tokenTransfersTask);
+        if (!request.Symbol.IsNullOrWhiteSpace())
+        {
+            tokenTransfers = await tokenTransfersTask;
+        }
+        else
+        {
+            var txnsTask = _graphqlProvider.GetTransactionsAsync(new TransactionsRequestDto()
+            {
+                ChainId = chainId,
+                Address = address,
+                SkipCount = 0,
+                MaxResultCount = request.SkipCount + request.MaxResultCount
+            });
+            await Task.WhenAll(txnsTask, tokenTransfersTask);
         
-        txns = await txnsTask;
-        tokenTransfers = await tokenTransfersTask;
+            txns = await txnsTask;
+            tokenTransfers = await tokenTransfersTask;
+        }
+        
         var transactions = MergeTxns(txns, tokenTransfers);
         
         transactions = transactions.OrderByDescending(item => item.Timestamp)

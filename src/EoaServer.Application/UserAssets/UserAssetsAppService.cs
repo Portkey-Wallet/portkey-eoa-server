@@ -9,6 +9,7 @@ using EoaServer.Options;
 using EoaServer.Token;
 using EoaServer.Token.Dto;
 using EoaServer.UserAssets;
+using EoaServer.UserAssets.Dto;
 using EoaServer.UserAssets.Dtos;
 using EoaServer.UserAssets.Provider;
 using EoaServer.UserToken;
@@ -75,8 +76,13 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         _tokenInfoOptions = tokenInfoOptions.Value;
         _nftToFtOptions = nftToFtOptions.Value;
     }
-    
+
     public async Task<GetTokenDto> GetTokenAsync(GetTokenRequestDto requestDto)
+    {
+        return await GetTokenAsync(requestDto, true);
+    }
+
+    public async Task<GetTokenDto> GetTokenAsync(GetAssetsBase requestDto, bool addDefaultToken)
     {
         var tokenList = new GetAddressTokenListResultDto();
         foreach (var addressInfo in requestDto.AddressInfos)
@@ -101,7 +107,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
             chainToken.Quantity = (long) ((double) chainToken.Quantity * Math.Pow(10, tokenInfoDto.Decimals));
         }
 
-        AddDefaultTokens(tokenList);
+        if (addDefaultToken)
+        {
+            AddDefaultTokens(tokenList);
+        }
         var result = await ConvertDtoAsync(tokenList, requestDto);
         
         result.Data = SortTokens(result.Data);
@@ -475,7 +484,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         }
     }
     
-    private async Task<GetTokenDto> ConvertDtoAsync(GetAddressTokenListResultDto fromDto, GetTokenRequestDto requestDto)
+    private async Task<GetTokenDto> ConvertDtoAsync(GetAddressTokenListResultDto fromDto, GetAssetsBase requestDto)
     {
         var result = new GetTokenDto()
         {
@@ -741,5 +750,76 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 JsonConvert.SerializeObject(tokens.Where(t => t.Balance.IsNullOrEmpty()).ToList()));
             return tokens;
         }
+    }
+
+    public async Task<SearchUserAssetsV2Dto> SearchUserAssetsAsync(SearchUserAssetsRequestDto requestDto)
+    {
+        var result = new SearchUserAssetsV2Dto();
+        var getTokenDto = await GetTokenAsync(requestDto, false);
+        foreach (var tokenInfo in getTokenDto.Data)
+        {
+            if (!requestDto.Keyword.IsNullOrWhiteSpace() && !tokenInfo.Symbol.Contains(requestDto.Keyword))
+            {
+                continue;
+            }
+            var tokenInfoDtoList = ObjectMapper.Map<List<Dtos.Token>, List<TokenInfoV2Dto>>(tokenInfo.Tokens);
+            result.TokenInfos.AddRange(tokenInfoDtoList);
+        }
+        result.TokenInfos.ForEach(t => t.Address = requestDto.AddressInfos[0].Address);
+        
+
+        var collectionDto = await GetNFTCollectionsAsync(new GetNftCollectionsRequestDto()
+        {
+            SkipCount = requestDto.SkipCount,
+            MaxResultCount = requestDto.MaxResultCount,
+            AddressInfos = requestDto.AddressInfos,
+            Height = requestDto.Height,
+            Width = requestDto.Width
+        });
+        var nftItemsTask = collectionDto.Data.Select(t => GetNFTItemsAsync(new GetNftItemsRequestDto()
+        {
+            SkipCount = requestDto.SkipCount,
+            MaxResultCount = requestDto.MaxResultCount,
+            AddressInfos = requestDto.AddressInfos,
+            Height = requestDto.Height,
+            Width = requestDto.Width,
+            Symbol = t.Symbol
+        }));
+        var nftItemsDtoList = await Task.WhenAll(nftItemsTask);
+        var nftItemsMap = nftItemsDtoList.ToDictionary(t => t.Data[0].CollectionSymbol, t => t);
+        foreach (var collection in collectionDto.Data)
+        {
+            var collectionInfo = new NftCollectionDto();
+            collectionInfo.CollectionName = collection.CollectionName;
+            collectionInfo.ImageUrl = collection.ImageUrl;
+            if (!nftItemsMap.TryGetValue(collection.Symbol, out var nftItems) || nftItems.Data.IsNullOrEmpty())
+            {
+                continue;
+            }
+            foreach (var nftItem in nftItems.Data)
+            {
+                if (!requestDto.Keyword.IsNullOrWhiteSpace() && !nftItem.Symbol.Contains(requestDto.Keyword))
+                {
+                    continue;
+                }
+                var nftItemInfo = ObjectMapper.Map<NftItem, NftInfoDto>(nftItem);
+                nftItemInfo.CollectionName = collection.CollectionName;
+                var nftToFtInfo = _nftToFtOptions.NftToFtInfos.GetOrDefault(nftItem.Symbol);
+                if (nftToFtInfo != null)
+                {
+                    nftItemInfo.Label = nftToFtInfo.Label;
+                    nftItemInfo.ImageUrl = nftToFtInfo.ImageUrl;
+                }
+                collectionInfo.Items.Add(nftItemInfo);
+            }
+
+            if (collectionInfo.Items.Count > 0)
+            {
+                result.NftInfos.Add(collectionInfo);
+            }
+        }
+
+        result.TotalRecordCount = result.TokenInfos.Count + result.NftInfos.Sum(t => t.Items.Count);
+        return result;
     }
 }

@@ -2,9 +2,10 @@ using System;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using EoaServer.Awaken;
+using EoaServer.Commons;
 using EoaServer.UserAssets;
+using EoaServer.UserAssets.Dto;
 using EoaServer.UserAssets.Dtos;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
@@ -53,5 +54,11 @@ public class UserAssetsController : EoaServerBaseController
         maxResultCount = maxResultCount <= 0 ? 100 : maxResultCount;
         page = page <= 1 ? 1 : page;
         return await _userAssetsAppService.ListAwakenSupportedTokensAsync(skipCount, maxResultCount, page, chainId, address);
+    }
+    
+    [HttpPost("searchUserAssets")]
+    public async Task<SearchUserAssetsV2Dto> SearchUserAssetsAsync(SearchUserAssetsRequestDto requestDto)
+    {
+        return await _userAssetsAppService.SearchUserAssetsAsync(requestDto);
     }
 }
