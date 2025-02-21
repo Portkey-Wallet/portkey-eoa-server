@@ -766,6 +766,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
             result.TokenInfos.AddRange(tokenInfoDtoList);
         }
         result.TokenInfos.ForEach(t => t.Address = requestDto.AddressInfos[0].Address);
+        result.TokenInfos = result.TokenInfos.Where(t => t.Balance != "0").ToList();
         
 
         var collectionDto = await GetNFTCollectionsAsync(new GetNftCollectionsRequestDto()
