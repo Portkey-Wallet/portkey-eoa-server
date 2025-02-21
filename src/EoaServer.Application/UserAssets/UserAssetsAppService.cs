@@ -781,19 +781,25 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         {
             SkipCount = requestDto.SkipCount,
             MaxResultCount = requestDto.MaxResultCount,
-            AddressInfos = requestDto.AddressInfos,
+            AddressInfos = requestDto.AddressInfos.Where(a => a.ChainId == t.ChainId).ToList(),
             Height = requestDto.Height,
             Width = requestDto.Width,
             Symbol = t.Symbol
         }));
-        var nftItemsDtoList = await Task.WhenAll(nftItemsTask);
-        var nftItemsMap = nftItemsDtoList.ToDictionary(t => t.Data[0].CollectionSymbol, t => t);
+        var nftItemsDtoList = (await Task.WhenAll(nftItemsTask)).Where(t => t.Data.Count > 0).ToList();
+        var nftItemsMap = nftItemsDtoList.ToDictionary(t => t.Data[0].CollectionSymbol + "-" + t.Data[0].ChainId, t => t);
         foreach (var collection in collectionDto.Data)
         {
-            var collectionInfo = new NftCollectionDto();
+            var collectionInfo = result.NftInfos.FirstOrDefault(t => t.CollectionName == collection.CollectionName);
+            var isNewCollection = false;
+            if (collectionInfo == null)
+            {
+                isNewCollection = true;
+                collectionInfo = new NftCollectionDto();
+            }
             collectionInfo.CollectionName = collection.CollectionName;
             collectionInfo.ImageUrl = collection.ImageUrl;
-            if (!nftItemsMap.TryGetValue(collection.Symbol, out var nftItems) || nftItems.Data.IsNullOrEmpty())
+            if (!nftItemsMap.TryGetValue(collection.Symbol + "-" + collection.ChainId, out var nftItems) || nftItems.Data.IsNullOrEmpty())
             {
                 continue;
             }
@@ -814,7 +820,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 collectionInfo.Items.Add(nftItemInfo);
             }
 
-            if (collectionInfo.Items.Count > 0)
+            if (collectionInfo.Items.Count > 0 && isNewCollection)
             {
                 result.NftInfos.Add(collectionInfo);
             }
