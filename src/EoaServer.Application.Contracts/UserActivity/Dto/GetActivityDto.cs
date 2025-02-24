@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using EoaServer.UserActivity.Dtos;
 
 namespace EoaServer.UserActivity.Dto;
@@ -38,4 +39,8 @@ public class OperationItemInfo
     public string Icon { get; set; }
     public bool IsReceived { get; set; }
     public NftDetail NftInfo { get; set; }
+    [JsonIgnore]
+    public string From { set; get; }
+    [JsonIgnore]
+    public string To { set; get; }
 }

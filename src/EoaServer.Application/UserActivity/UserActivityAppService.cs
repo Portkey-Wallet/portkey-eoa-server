@@ -152,6 +152,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         transactions = transactions.OrderByDescending(item => item.Timestamp)
             .Skip(request.SkipCount) 
             .Take(request.MaxResultCount)
+            .DistinctBy(t => t.TransactionId)
             .ToList();
         
         var mapTasks = transactions.Select(async txn =>
@@ -162,7 +163,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         var txnDetailMap = (await Task.WhenAll(mapTasks))
             .Where(result => result != null)
             .SelectMany(result => result.List)
-            .ToDictionary(t => t.TransactionId, t => t);
+            .ToDictionary(t => t.TransactionId, t => t, StringComparer.OrdinalIgnoreCase);
 
         var tokens = new HashSet<string>(
             txnDetailMap
@@ -299,7 +300,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         
         foreach (var tokenTransferred in dto.TokenTransferreds)
         {
-            if (tokenTransferred.To.Address == userAddress || tokenTransferred.From.Address == userAddress)
+            if (!tokenTransferred.To.Address.IsNullOrWhiteSpace() && (tokenTransferred.To.Address == userAddress || tokenTransferred.From.Address == userAddress))
             {
                 var isReceived = tokenTransferred.To.Address == userAddress;
                 var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol);
@@ -311,7 +312,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         Symbol = tokenTransferred.Symbol,
                         Amount = tokenTransferred.Amount.ToString(),
                         Icon = tokenTransferred.ImageUrl,
-                        Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString()
+                        Decimals = tokenMap[tokenTransferred.Symbol]?.Decimals.ToString(),
+                        From = tokenTransferred.From.Address,
+                        To = tokenTransferred.To.Address
                     });
                 }
                 else
@@ -359,7 +362,9 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         IsReceived = isReceived,
                         Symbol = nftsTransferred.Symbol,
                         Amount = nftsTransferred.Amount.ToString(),
-                        NftInfo = nftInfo
+                        NftInfo = nftInfo,
+                        From = nftsTransferred.From.Address,
+                        To = nftsTransferred.To.Address
                     });
                     activityDto.NftInfo = nftInfo;
                 }
@@ -415,10 +420,16 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             activityDto.CurrentPriceInUsd = tokenPrice.ToString();
             activityDto.CurrentTxPriceInUsd = (tokenPrice * amount).ToString();
             activityDto.IsReceived = activityDto.Operations[0].IsReceived;
-            activityDto.Operations.Clear();
+            activityDto.FromAddress = activityDto.Operations[0].From;
+            activityDto.ToAddress = activityDto.Operations[0].To;
         }
         
         activityDto.ListIcon = activityDto.Operations.FirstOrDefault()?.Icon;
+        if (activityDto.Operations.Count == 1)
+        {
+            activityDto.Operations.Clear();
+        }
+
         MapMethodNameAsync(activityDto, activityDto.To);
         return activityDto;
     }

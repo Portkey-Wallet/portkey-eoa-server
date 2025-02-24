@@ -40,6 +40,6 @@ public class TokenController : EoaServerBaseController
     [HttpGet("token")]
     public async Task<TokenInfoDto> GetTokenInfoAsync([Required] string chainId, [Required] string symbol)
     {
-        return await _tokenAppService.GetTokenInfoAsync(chainId, symbol);
+        return await _tokenAppService.GetTokenInfoAsync(chainId, symbol.Trim().ToUpper());
     }
 }

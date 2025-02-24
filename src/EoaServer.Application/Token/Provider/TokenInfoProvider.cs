@@ -126,7 +126,7 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
         var tokenList = await Task.WhenAll(mapTasks);
         foreach (var tokenInfo in tokenList)
         {
-            if (tokenInfo != null)
+            if (tokenInfo != null && !tokenInfo.Symbol.IsNullOrEmpty())
             {
                 result[tokenInfo.Symbol] = tokenInfo;
             }
