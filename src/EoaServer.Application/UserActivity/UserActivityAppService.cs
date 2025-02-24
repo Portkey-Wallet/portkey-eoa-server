@@ -363,6 +363,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
                         Symbol = nftsTransferred.Symbol,
                         Amount = nftsTransferred.Amount.ToString(),
                         NftInfo = nftInfo,
+                        Decimals = tokenMap[nftsTransferred.Symbol]?.Decimals.ToString(),
                         From = nftsTransferred.From.Address,
                         To = nftsTransferred.To.Address
                     });
