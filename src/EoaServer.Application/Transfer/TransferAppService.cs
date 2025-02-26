@@ -56,7 +56,7 @@ public class TransferAppService : EoaServerBaseService, ITransferAppService
         var depositInfoWrap = await _eTransferProxyService.GetDepositInfoAsync(request);
         if (depositInfoWrap.Code != ETransferConstant.SuccessCode)
         {
-            return depositInfoWrap;
+            throw new UserFriendlyException( depositInfoWrap.Message, depositInfoWrap.Code);
         }
 
         var depositInfo = depositInfoWrap.Data;

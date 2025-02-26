@@ -606,7 +606,7 @@ public class EoaServerApplicationTestModule : AbpModule
                             },
                             To = new CommonAddressDto()
                             {
-                                Address = ""
+                                Address = EoaServerApplicationTestConstant.ForestContractAddress
                             }
                         },
                         new TokenTransferredDto()
@@ -620,7 +620,7 @@ public class EoaServerApplicationTestModule : AbpModule
                             },
                             To = new CommonAddressDto()
                             {
-                                Address = ""
+                                Address = EoaServerApplicationTestConstant.ForestContractAddress
                             }
                         }
                     },
@@ -633,7 +633,7 @@ public class EoaServerApplicationTestModule : AbpModule
                             ImageUrl = EoaServerApplicationTestConstant.NftBBB2Icon,
                             From = new CommonAddressDto()
                             {
-                                Address = ""
+                                Address = EoaServerApplicationTestConstant.ForestContractAddress
                             },
                             To = new CommonAddressDto()
                             {
