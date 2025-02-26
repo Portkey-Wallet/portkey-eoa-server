@@ -227,7 +227,7 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
                 Symbol = nftItem.Token.Symbol,
                 TokenId = TokenHelper.GetNFTItemId(nftItem.Token.Symbol).ToString(),
                 Alias = nftItem.Token.Name,
-                Balance = nftItem.Quantity.ToString(),
+                Balance = ((long)((double)nftItem.Quantity * Math.Pow(10, nftItem.Token.Decimals))).ToString(),
                 TotalSupply = tokenInfo?.TotalSupply ?? 0,
                 CirculatingSupply = tokenInfo?.Supply ?? 0,
                 TokenContractAddress = tokenContractAddress,
