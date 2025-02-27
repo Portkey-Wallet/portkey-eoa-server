@@ -46,6 +46,12 @@ public class UserAssetsController : EoaServerBaseController
         return await _userAssetsAppService.GetNFTItemsAsync(requestDto);
     }
     
+    [HttpPost("nftItem")]
+    public async Task<NftItem> GetNFTItemAsync(GetNftItemRequestDto requestDto)
+    {
+        return await _userAssetsAppService.GetNFTItemAsync(requestDto);
+    }
+    
     [HttpGet("awaken/token")]
     public async Task<AwakenSupportedTokenResponse> ListAwakenSupportedTokensAsync(int skipCount, int maxResultCount,
         int page, string chainId, string address)

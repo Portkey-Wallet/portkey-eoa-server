@@ -30,6 +30,8 @@ public static class CommonConstant
     public const string ImS3Mark = "im";
     
     public const string TokenInfoCachePrefix = "TokenInfoCachePrefix";
+
+    public const string DidSetTraitsPercentage = "api/app/user/assets/setTraitsPercentage";
     
     
     public const string EmptyString = "";
