@@ -241,10 +241,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
             SetNftInfo(resultNftItem, tokenInfo);
             
             resultNftItem.ImageUrl =
-                await _imageProcessProvider.GetResizeImageAsync(nftItem.Token.ImageUrl, requestDto.Width,
+                await _imageProcessProvider.GetResizeImageAsync(resultNftItem.ImageUrl.IsNullOrWhiteSpace() ? nftItem.Token.ImageUrl : resultNftItem.ImageUrl, requestDto.Width,
                     requestDto.Height,
                     ImageResizeType.Forest);
-            resultNftItem.ImageLargeUrl = await _imageProcessProvider.GetResizeImageAsync(nftItem.Token.ImageUrl,
+            resultNftItem.ImageLargeUrl = await _imageProcessProvider.GetResizeImageAsync(resultNftItem.ImageUrl.IsNullOrWhiteSpace() ? nftItem.Token.ImageUrl : resultNftItem.ImageUrl,
                 (int)ImageResizeWidthType.IMAGE_WIDTH_TYPE_ONE, (int)ImageResizeHeightType.IMAGE_HEIGHT_TYPE_AUTO,
                 ImageResizeType.Forest);
             
@@ -304,10 +304,10 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         SetNftInfo(resultNftItem, tokenInfo);
 
         resultNftItem.ImageUrl =
-            await _imageProcessProvider.GetResizeImageAsync(nftItem.Token.ImageUrl, requestDto.Width,
+            await _imageProcessProvider.GetResizeImageAsync(resultNftItem.ImageUrl.IsNullOrWhiteSpace() ? nftItem.Token.ImageUrl : resultNftItem.ImageUrl, requestDto.Width,
                 requestDto.Height,
                 ImageResizeType.Forest);
-        resultNftItem.ImageLargeUrl = await _imageProcessProvider.GetResizeImageAsync(nftItem.Token.ImageUrl,
+        resultNftItem.ImageLargeUrl = await _imageProcessProvider.GetResizeImageAsync(resultNftItem.ImageUrl.IsNullOrWhiteSpace() ? nftItem.Token.ImageUrl : resultNftItem.ImageUrl,
             (int) ImageResizeWidthType.IMAGE_WIDTH_TYPE_ONE, (int) ImageResizeHeightType.IMAGE_HEIGHT_TYPE_AUTO,
             ImageResizeType.Forest);
 
@@ -390,6 +390,11 @@ public class UserAssetsAppService : EoaServerBaseService, IUserAssetsAppService
         if (externalInfo.TryGetValue("__nft_attributes", out var attributes))
         {
             item.Traits = attributes;
+        }
+        
+        if (externalInfo.TryGetValue("__nft_image_uri", out var imageUri))
+        {
+            item.ImageUrl = imageUri;
         }
     }
     
