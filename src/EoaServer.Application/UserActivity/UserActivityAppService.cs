@@ -179,7 +179,14 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         {
             if (txnDetailMap.ContainsKey(txn.TransactionId) && txnDetailMap[txn.TransactionId] != null)
             {
-                activityDtos.Add(await ConvertDtoAsync(txn.ChainId, txnDetailMap[txn.TransactionId], tokenMap, request.Width, request.Height, request.AddressInfos[0].Address));
+                var activityDto = await ConvertDtoAsync(txn.ChainId, txnDetailMap[txn.TransactionId], tokenMap,
+                    request.Width, request.Height, request.AddressInfos[0].Address);
+                if (activityDto.TransactionType == ActivityConstants.CrossChainTransferName && activityDto.IsReceived ||
+                    activityDto.TransactionType == ActivityConstants.CrossChainReceiveTokenName && !activityDto.IsReceived)
+                {
+                    continue;
+                }
+                activityDtos.Add(activityDto);
             }
             else
             {
@@ -303,6 +310,11 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             if (!tokenTransferred.To.Address.IsNullOrWhiteSpace() && (tokenTransferred.To.Address == userAddress || tokenTransferred.From.Address == userAddress))
             {
                 var isReceived = tokenTransferred.To.Address == userAddress;
+                if (dto.Method == ActivityConstants.CrossChainTransferName && tokenTransferred.To.Address == tokenTransferred.From.Address)
+                {
+                    isReceived = false;
+                }
+
                 var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == tokenTransferred.Symbol);
                 if (symbolInfo == null)
                 {
@@ -337,6 +349,10 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             if (nftsTransferred.To.Address == userAddress || nftsTransferred.From.Address == userAddress)
             {
                 var isReceived = nftsTransferred.To.Address == userAddress;
+                if (dto.Method == ActivityConstants.CrossChainTransferName && nftsTransferred.To.Address == nftsTransferred.From.Address)
+                {
+                    isReceived = false;
+                }
                 var symbolInfo = activityDto.Operations.FirstOrDefault(t => t.Symbol == nftsTransferred.Symbol);
                 if (symbolInfo == null)
                 {
@@ -443,7 +459,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
             _activityOptions.TypeMap.GetValueOrDefault(transactionType, transactionType);
         activityDto.TransactionName = typeName;
 
-        if (transactionType is ActivityConstants.TransferName or ActivityConstants.CrossChainTransferName)
+        if (transactionType is ActivityConstants.TransferName or ActivityConstants.CrossChainTransferName or ActivityConstants.CrossChainReceiveTokenName)
         {
             activityDto.TransactionName =
                 activityDto.IsReceived ? ActivityConstants.ReceiveName : ActivityConstants.SendName;
