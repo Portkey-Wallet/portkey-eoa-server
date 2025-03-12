@@ -8,4 +8,5 @@ public interface IUserActivityAppService
 {
     Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto request);
     Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request);
+    Task<GetActivitiesDto> GetTwoTransactionsAsync(GetTwoTransactionRequestDto request);
 }

@@ -12,6 +12,8 @@ public class GetTokenTransferRequestDto : BaseInput
     public string Search { get; set; } = "";
     public string CollectionSymbol { get; set; } = "";
     public string Address { get; set; } = "";
+    
+    public string From { get; set; } = "";
 
     public List<SymbolType> Types { get; set; } = new() { SymbolType.Token };
     public string FuzzySearch { get; set; } = "";

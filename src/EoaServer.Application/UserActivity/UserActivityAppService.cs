@@ -54,7 +54,87 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         _imageProcessProvider = imageProcessProvider;
         _graphqlProvider = graphqlProvider;
     }
-    
+
+    public async Task<GetActivitiesDto> GetTwoTransactionsAsync(GetTwoTransactionRequestDto request)
+    {
+        if (request.AddressInfos.IsNullOrEmpty() || request.TargetAddressInfos.IsNullOrEmpty())
+        {
+            throw new UserFriendlyException("Parameters “CaAddressInfos” “TargetAddressInfos” must be non-empty");
+        }
+        var address = request.AddressInfos[0].Address;
+        var chainId = request.TargetAddressInfos[0].ChainId;
+        
+        var tokenTransfersTask = _graphqlProvider.GetTokenTransferInfoAsync(new GetTokenTransferRequestDto()
+        {
+            From = address,
+            Address = request.TargetAddressInfos[0].Address,
+            ChainId = chainId,
+            SkipCount = request.SkipCount,
+            MaxResultCount = request.SkipCount + request.MaxResultCount,
+            Symbol = request.Symbol
+        });
+        var tokenTransfers = await tokenTransfersTask;
+        var txns = new IndexerTransactionListResultDto();
+        var transactions = MergeTxns(txns, tokenTransfers);
+        return await ProcessTransactionInfosAsync(transactions, request);
+    }
+
+    private async Task<GetActivitiesDto> ProcessTransactionInfosAsync(List<TransactionInfo> transactions, GetActivitiesRequestDto request)
+    {
+        transactions = transactions.OrderByDescending(item => item.Timestamp)
+            .Skip(request.SkipCount) 
+            .Take(request.MaxResultCount)
+            .DistinctBy(t => t.TransactionId)
+            .ToList();
+        
+        var mapTasks = transactions.Select(async txn =>
+        {
+            return await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainId, txn.TransactionId);
+        }).ToList();
+
+        var txnDetailMap = (await Task.WhenAll(mapTasks))
+            .Where(result => result != null)
+            .SelectMany(result => result.List)
+            .ToDictionary(t => t.TransactionId, t => t, StringComparer.OrdinalIgnoreCase);
+
+        var tokens = new HashSet<string>(
+            txnDetailMap
+                .SelectMany(txn => txn.Value.TokenTransferreds
+                    .Select(transfer => transfer.Symbol)
+                    .Concat(txn.Value.NftsTransferreds
+                        .Select(transfer => transfer.Symbol)))
+        );
+        
+        var tokenMap = await _tokenInfoProvider.GetTokenMapAsync(tokens);
+        var activityDtos = new List<GetActivityDto>();
+        foreach (var txn in transactions)
+        {
+            if (txnDetailMap.ContainsKey(txn.TransactionId) && txnDetailMap[txn.TransactionId] != null)
+            {
+                var activityDto = await ConvertDtoAsync(txn.ChainId, txnDetailMap[txn.TransactionId], tokenMap,
+                    request.Width, request.Height, request.AddressInfos[0].Address);
+                if (activityDto.TransactionType == ActivityConstants.CrossChainTransferName && activityDto.IsReceived ||
+                    activityDto.TransactionType == ActivityConstants.CrossChainReceiveTokenName && !activityDto.IsReceived)
+                {
+                    continue;
+                }
+                activityDtos.Add(activityDto);
+            }
+            else
+            {
+                _logger.LogError($"Get transaction detail error. ChainId: {txn.ChainId}, TransactionId: {txn.TransactionId}");
+            }
+        }
+        
+        return new GetActivitiesDto()
+        {
+            Data = activityDtos,
+            HasNextPage = request.MaxResultCount <= activityDtos.Count,
+            TotalRecordCount = request.MaxResultCount <= activityDtos.Count 
+                ? transactions.Count : request.SkipCount + activityDtos.Count 
+        };
+    }
+
     public async Task<GetActivityDto> GetActivityAsync(GetActivityRequestDto request)
     {
         var txnDto = await _aelfScanDataProvider.GetTransactionDetailAsync(request.ChainId, request.TransactionId);
@@ -148,59 +228,7 @@ public class UserActivityAppService : EoaServerBaseService, IUserActivityAppServ
         }
         
         var transactions = MergeTxns(txns, tokenTransfers);
-        
-        transactions = transactions.OrderByDescending(item => item.Timestamp)
-            .Skip(request.SkipCount) 
-            .Take(request.MaxResultCount)
-            .DistinctBy(t => t.TransactionId)
-            .ToList();
-        
-        var mapTasks = transactions.Select(async txn =>
-        {
-            return await _aelfScanDataProvider.GetTransactionDetailAsync(txn.ChainId, txn.TransactionId);
-        }).ToList();
-
-        var txnDetailMap = (await Task.WhenAll(mapTasks))
-            .Where(result => result != null)
-            .SelectMany(result => result.List)
-            .ToDictionary(t => t.TransactionId, t => t, StringComparer.OrdinalIgnoreCase);
-
-        var tokens = new HashSet<string>(
-            txnDetailMap
-                .SelectMany(txn => txn.Value.TokenTransferreds
-                    .Select(transfer => transfer.Symbol)
-                    .Concat(txn.Value.NftsTransferreds
-                        .Select(transfer => transfer.Symbol)))
-        );
-        
-        var tokenMap = await _tokenInfoProvider.GetTokenMapAsync(tokens);
-        var activityDtos = new List<GetActivityDto>();
-        foreach (var txn in transactions)
-        {
-            if (txnDetailMap.ContainsKey(txn.TransactionId) && txnDetailMap[txn.TransactionId] != null)
-            {
-                var activityDto = await ConvertDtoAsync(txn.ChainId, txnDetailMap[txn.TransactionId], tokenMap,
-                    request.Width, request.Height, request.AddressInfos[0].Address);
-                if (activityDto.TransactionType == ActivityConstants.CrossChainTransferName && activityDto.IsReceived ||
-                    activityDto.TransactionType == ActivityConstants.CrossChainReceiveTokenName && !activityDto.IsReceived)
-                {
-                    continue;
-                }
-                activityDtos.Add(activityDto);
-            }
-            else
-            {
-                _logger.LogError($"Get transaction detail error. ChainId: {txn.ChainId}, TransactionId: {txn.TransactionId}");
-            }
-        }
-        
-        return new GetActivitiesDto()
-        {
-            Data = activityDtos,
-            HasNextPage = request.MaxResultCount <= activityDtos.Count,
-            TotalRecordCount = request.MaxResultCount <= activityDtos.Count 
-                ? transactions.Count : request.SkipCount + activityDtos.Count 
-        };
+        return await ProcessTransactionInfosAsync(transactions, request);
     }
 
     private bool IsETransfer(string transactionType, string fromChainId, string fromAddress)

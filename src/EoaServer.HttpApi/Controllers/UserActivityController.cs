@@ -23,6 +23,12 @@ public class UserActivityController : EoaServerBaseController
         _userActivityAppService = userActivityAppService;
     }
     
+    [HttpPost("transactions")]
+    public async Task<GetActivitiesDto> GetTransactionsAsync(GetTwoTransactionRequestDto requestDto)
+    {
+        return await _userActivityAppService.GetTwoTransactionsAsync(requestDto);
+    }
+    
     [HttpPost("activities")]
     public async Task<GetActivitiesDto> GetActivitiesAsync(GetActivitiesRequestDto requestDto)
     {

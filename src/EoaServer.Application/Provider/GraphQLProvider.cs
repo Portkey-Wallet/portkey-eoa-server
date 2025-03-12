@@ -37,10 +37,10 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
         var graphQlResponse = await _tokenIndexerClient.SendQueryAsync<IndexerTokenTransfersDto>(new GraphQLRequest
         {
             Query =
-                @"query($chainId:String!,$symbol:String!,$address:String,$collectionSymbol:String,
+                @"query($chainId:String!,$symbol:String!,$address:String,$from:String,$collectionSymbol:String,
                     $search:String,$skipCount:Int!,$maxResultCount:Int!,$types:[SymbolType!],$beginBlockTime:DateTime,
                     $fuzzySearch:String,$sort:String,$orderBy:String,$searchAfter:[String],$orderInfos:[OrderInfo]){
-                    transferInfo(input: {chainId:$chainId,symbol:$symbol,collectionSymbol:$collectionSymbol,address:$address,types:$types,beginBlockTime:$beginBlockTime,search:$search,
+                    transferInfo(input: {chainId:$chainId,symbol:$symbol,collectionSymbol:$collectionSymbol,address:$address,from:$from,types:$types,beginBlockTime:$beginBlockTime,search:$search,
                     skipCount:$skipCount,maxResultCount:$maxResultCount,fuzzySearch:$fuzzySearch,sort:$sort,orderBy:$orderBy,searchAfter:$searchAfter,orderInfos:$orderInfos}){     
                     totalCount,
                     items{
@@ -58,7 +58,7 @@ public class GraphQLProvider : IGraphQLProvider, ISingletonDependency
             }",
             Variables = new
             {
-                chainId = requestDto.ChainId, symbol = requestDto.Symbol, address = requestDto.Address, search = requestDto.Search,
+                chainId = requestDto.ChainId, symbol = requestDto.Symbol, address = requestDto.Address, from = requestDto.From, search = requestDto.Search,
                 skipCount = requestDto.SkipCount, maxResultCount = requestDto.MaxResultCount,
                 collectionSymbol = requestDto.CollectionSymbol,
                 sort = requestDto.Sort, fuzzySearch = requestDto.FuzzySearch,
