@@ -260,11 +260,14 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
                 {
                     Type = type, Symbol = token.Symbol, ChainId = chainId,
                 });
+                if(networkList?.Data?.NetworkList == null || networkList.Data.NetworkList.Count == 0)
+                {
+                    continue;
+                }
+                receiveNetwork.DestinationMap[chainId] = new List<NetworkInfoDto>();
                 foreach (var networkDto in networkList.Data.NetworkList)
                 {
-                    receiveNetwork.DestinationMap[chainId] = new List<NetworkInfoDto>
-                    {
-                        new NetworkInfoDto
+                    receiveNetwork.DestinationMap[chainId].Add(new NetworkInfoDto
                         {
                             Network = networkDto.Network,
                             Name = networkDto.Name,
@@ -279,7 +282,7 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
                                 }
                             }
                         }
-                    };
+                    );
                     networkMap[networkDto.Network] = new NetworkInfoDto
                     {
                         Network = networkDto.Network,
