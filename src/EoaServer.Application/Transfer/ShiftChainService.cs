@@ -262,21 +262,24 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
                 });
                 foreach (var networkDto in networkList.Data.NetworkList)
                 {
-                    receiveNetwork.DestinationMap[chainId].Add(new NetworkInfoDto
+                    receiveNetwork.DestinationMap[chainId] = new List<NetworkInfoDto>
                     {
-                        Network = networkDto.Network,
-                        Name = networkDto.Name,
-                        ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
-                        ServiceList = new List<ServiceDto>
+                        new NetworkInfoDto
                         {
-                            new ServiceDto
+                            Network = networkDto.Network,
+                            Name = networkDto.Name,
+                            ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
+                            ServiceList = new List<ServiceDto>
                             {
-                                ServiceName = ShiftChainHelper.ETransferTool,
-                                MultiConfirmTime = networkDto.MultiConfirmTime,
-                                MaxAmount = maxAmount
+                                new ServiceDto
+                                {
+                                    ServiceName = ShiftChainHelper.ETransferTool,
+                                    MultiConfirmTime = networkDto.MultiConfirmTime,
+                                    MaxAmount = maxAmount
+                                }
                             }
                         }
-                    });
+                    };
                     networkMap[networkDto.Network] = new NetworkInfoDto
                     {
                         Network = networkDto.Network,
