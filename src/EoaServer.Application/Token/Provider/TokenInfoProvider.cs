@@ -116,11 +116,17 @@ public class TokenInfoProvider : ITokenInfoProvider, ISingletonDependency
         var result = tokens.ToDictionary(t => t, t => new TokenInfoDto());
 
         var sideChain = _chainOptions.ChainInfos.FirstOrDefault(t => t.Value.IsMainChain == false);
+        var mainChain = _chainOptions.ChainInfos.FirstOrDefault(t => t.Value.IsMainChain);
         var tokenChain = sideChain.Value.ChainId;
         
         var mapTasks = result.Select(async token =>
         {
-            return await GetAsync(tokenChain, token.Key);
+            var tokenInfoDto = await GetAsync(tokenChain, token.Key);
+            if (tokenInfoDto.Symbol == null)
+            {
+                tokenInfoDto = await GetAsync(mainChain.Value.ChainId, token.Key);
+            }
+            return tokenInfoDto;
         }).ToList();
 
         var tokenList = await Task.WhenAll(mapTasks);
