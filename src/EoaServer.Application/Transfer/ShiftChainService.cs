@@ -260,29 +260,42 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
                 {
                     Type = type, Symbol = token.Symbol, ChainId = chainId,
                 });
-                if(networkList?.Data?.NetworkList == null || networkList.Data.NetworkList.Count == 0)
-                {
-                    continue;
-                }
                 receiveNetwork.DestinationMap[chainId] = new List<NetworkInfoDto>();
                 foreach (var networkDto in networkList.Data.NetworkList)
                 {
-                    receiveNetwork.DestinationMap[chainId].Add(new NetworkInfoDto
-                        {
-                            Network = networkDto.Network,
-                            Name = networkDto.Name,
-                            ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
-                            ServiceList = new List<ServiceDto>
+                    var networks = receiveNetwork.DestinationMap[chainId];
+                    var network = networks.FirstOrDefault(n => n.Network == networkDto.Network);
+                    if(network == null)
+                    {
+                        receiveNetwork.DestinationMap[chainId].Add(new NetworkInfoDto
                             {
-                                new ServiceDto
+                                Network = networkDto.Network,
+                                Name = networkDto.Name,
+                                ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
+                                ServiceList = new List<ServiceDto>
                                 {
-                                    ServiceName = ShiftChainHelper.ETransferTool,
-                                    MultiConfirmTime = networkDto.MultiConfirmTime,
-                                    MaxAmount = maxAmount
+                                    new ServiceDto
+                                    {
+                                        ServiceName = ShiftChainHelper.ETransferTool,
+                                        MultiConfirmTime = networkDto.MultiConfirmTime,
+                                        MaxAmount = maxAmount
+                                    }
                                 }
                             }
-                        }
-                    );
+                        );
+                    }
+                    else
+                    {
+                        network.ServiceList = new List<ServiceDto>
+                        {
+                            new ServiceDto
+                            {
+                                ServiceName = ShiftChainHelper.ETransferTool,
+                                MultiConfirmTime = networkDto.MultiConfirmTime,
+                                MaxAmount = maxAmount
+                            }
+                        };
+                    }
                     networkMap[networkDto.Network] = new NetworkInfoDto
                     {
                         Network = networkDto.Network,
