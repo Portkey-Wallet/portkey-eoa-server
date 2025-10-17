@@ -1,0 +1,61 @@
+﻿using EoaServer.Common;
+using EoaServer.Options;
+using EoaServer.Redis;
+using EoaServer.Token.TokenPrice.CoinGecko;
+using EoaServer.UserAssets.Provider;
+using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp.Account;
+using Volo.Abp.AutoMapper;
+using Volo.Abp.DistributedLocking;
+using Volo.Abp.FeatureManagement;
+using Volo.Abp.Identity;
+using Volo.Abp.Modularity;
+using Volo.Abp.PermissionManagement;
+using Volo.Abp.SettingManagement;
+using Volo.Abp.TenantManagement;
+
+namespace EoaServer;
+
+[DependsOn(
+    typeof(EoaServerDomainModule),
+    typeof(AbpAccountApplicationModule),
+    typeof(EoaServerApplicationContractsModule),
+    typeof(AbpIdentityApplicationModule),
+    typeof(AbpPermissionManagementApplicationModule),
+    typeof(AbpTenantManagementApplicationModule),
+    typeof(AbpFeatureManagementApplicationModule),
+    typeof(AbpSettingManagementApplicationModule),
+    typeof(EoaServerGrainsModule),
+    typeof(AbpDistributedLockingModule)
+)]
+public class EoaServerApplicationModule : AbpModule
+{
+    public override void ConfigureServices(ServiceConfigurationContext context)
+    {
+        Configure<AbpAutoMapperOptions>(options => { options.AddMaps<EoaServerApplicationModule>(); });
+        context.Services.AddHttpClient();
+        context.Services.AddSingleton<RedisClient>();
+        
+        var configuration = context.Services.GetConfiguration();
+        
+        Configure<ChainOptions>(configuration.GetSection("Chains"));
+        Configure<TokenSpenderOptions>(configuration.GetSection("TokenSpender"));
+        Configure<ActivityOptions>(configuration.GetSection("ActivityOptions"));
+        Configure<ActivitiesStatusIconOptions>(configuration.GetSection("ActivitiesStatusIcon"));
+        Configure<AElfScanOptions>(configuration.GetSection("AElfScanOptions"));
+        Configure<DidServerOptions>(configuration.GetSection("DidServerOptions"));
+        Configure<TokenListOptions>(configuration.GetSection("Tokens"));
+        Configure<TokenInfoOptions>(configuration.GetSection("TokenInfo"));
+        Configure<AssetsInfoOptions>(configuration.GetSection("AssetsInfo"));
+        Configure<SeedImageOptions>(configuration.GetSection("SeedSymbolImage"));
+        Configure<IpfsOptions>(configuration.GetSection("Ipfs"));
+        Configure<NftItemDisplayOption>(configuration.GetSection("NftItemDisplay"));
+        Configure<NftToFtOptions>(configuration.GetSection("NftToFt"));
+        Configure<ETransferOptions>(configuration.GetSection("ETransfer"));
+        Configure<DepositOptions>(configuration.GetSection("Deposit"));
+        Configure<CoinGeckoOptions>(configuration.GetSection("CoinGecko"));
+        Configure<AwsThumbnailOptions>(configuration.GetSection("AWSThumbnail"));
+        Configure<GraphQLOptions>(configuration.GetSection("GraphQLOptions"));
+        Configure<AwakenOptions>(configuration.GetSection("AwakenConfig"));
+    }
+}
