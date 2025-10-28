@@ -1,7 +1,7 @@
 name: Build and Package
 on:
   push:
-    branches: ['dev', 'release/*']
+    branches: ['dev', 'release/*', 'hotfix/*']
 #    branches: ['dev']
 env:
   DOTNET_INSTALL_DIR: "./.dotnet"
