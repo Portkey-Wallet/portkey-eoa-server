@@ -260,7 +260,6 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
                 {
                     Type = type, Symbol = token.Symbol, ChainId = chainId,
                 });
-                receiveNetwork.DestinationMap[chainId] = new List<NetworkInfoDto>();
                 foreach (var networkDto in networkList.Data.NetworkList)
                 {
                     var networks = receiveNetwork.DestinationMap[chainId];
