@@ -151,14 +151,14 @@ public static class ShiftChainHelper
         };
     }
 
-    public static bool MatchForAddress(string chain, string fromChain, string address)
+    public static bool MatchForAddress(string chain, string address)
     {
         if (!ChainInfoMap.TryGetValue(chain, out var info))
         {
             return false;
         }
 
-        AddressFormat format = GetAddressFormat(fromChain, address);
+        AddressFormat format = GetAddressFormat(chain, address);
         return info.AddressFormat == format;
     }
 

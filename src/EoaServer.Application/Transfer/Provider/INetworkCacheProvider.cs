@@ -107,7 +107,7 @@ public class NetworkCacheProvider : INetworkCacheProvider, ISingletonDependency
         if (_sendEBridgeMap.TryGetValue(key, out SendNetworkDto result))
         {
             return result.NetworkList
-                .Where(p => ShiftChainHelper.MatchForAddress(p.Network, request.ChainId, request.ToAddress)).ToList();
+                .Where(p => ShiftChainHelper.MatchForAddress(p.Network, request.ToAddress)).ToList();
         }
 
         return null;

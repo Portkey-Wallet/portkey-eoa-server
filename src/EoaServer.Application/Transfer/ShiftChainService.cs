@@ -360,7 +360,7 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
         return limiters;
     }
 
-    private static void SetSendByEBridge(Dictionary<string, SendNetworkDto> sendEBridgeMap,
+    private  void SetSendByEBridge(Dictionary<string, SendNetworkDto> sendEBridgeMap,
         Dictionary<string, NetworkInfoDto> networkMap,
         EBridgeLimiterDto limiters)
     {
@@ -373,22 +373,32 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
                     continue;
                 }
 
-                if (!CommonConstant.ChainIds.Contains(limiter.ToChain))
+                if (!CommonConstant.ChainIds.Contains(limiter.FromChain))
                 {
                     continue;
                 }
 
-                string key = tokenInfo.Token + ";" + ShiftChainHelper.FormatEBridgeChain(limiter.ToChain);
+                string key = tokenInfo.Token + ";" + ShiftChainHelper.FormatEBridgeChain(limiter.FromChain);
                 if (!sendEBridgeMap.TryGetValue(key, out var sendInfo))
                 {
                     sendInfo = new SendNetworkDto { NetworkList = new List<NetworkInfoDto>() };
                     sendEBridgeMap[key] = sendInfo;
                 }
 
-                if (!sendInfo.NetworkList.Any(p => p.Network == limiter.FromChain))
+                if (!sendInfo.NetworkList.Any(p => p.Network == limiter.ToChain))
                 {
-                    sendInfo.NetworkList.Add(ShiftChainHelper.GetNetworkInfoByEBridge(networkMap, limiter.FromChain));
+                    sendInfo.NetworkList.Add(ShiftChainHelper.GetNetworkInfoByEBridge(networkMap, limiter.ToChain));
                 }
+            }
+        }
+
+        foreach (var chainName in _chainOptions.ChainInfos.Keys)
+        {
+            if(sendEBridgeMap.TryGetValue(CommonConstant.ELF+";"+ chainName,out var sendNetworkDto))
+            {
+                var toChain = _chainOptions.ChainInfos.Values.FirstOrDefault(c => c.ChainId != chainName);
+                if (toChain == null) continue;
+                sendNetworkDto.NetworkList.Add(ShiftChainHelper.GetNetworkInfoByEBridge(networkMap, toChain.ChainId));
             }
         }
     }
