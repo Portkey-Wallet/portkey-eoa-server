@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>EoaServer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EoaServer.Application.Contracts\EoaServer.Application.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\EoaServer.Application\EoaServer.Application.csproj" />
+    <ProjectReference Include="..\..\src\EoaServer.EntityEventHandler.Core\EoaServer.EntityEventHandler.Core.csproj" />
+    <ProjectReference Include="..\EoaServer.Domain.Tests\EoaServer.Domain.Tests.csproj" />
+    <ProjectReference Include="..\EoaServer.Grain.Tests\EoaServer.Grain.Tests.csproj" />
+    <ProjectReference Include="..\EoaServer.TestBase\EoaServer.TestBase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Moq" Version="4.18.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
