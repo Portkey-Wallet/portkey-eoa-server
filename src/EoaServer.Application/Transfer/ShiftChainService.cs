@@ -22,7 +22,7 @@ namespace EoaServer.Transfer;
 [RemoteService(false), DisableAuditing]
 public class ShiftChainService : EoaServerBaseService, IShiftChainService
 {
-    private readonly IETransferProxyService _eTransferProxyService;
+    // private readonly IETransferProxyService _eTransferProxyService;
     private readonly ChainOptions _chainOptions;
     private readonly ITokenAppService _tokenAppService;
     private readonly IHttpClientService _httpClientService;
@@ -31,14 +31,15 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
     private readonly ITransferAppService _transferAppService;
     private readonly ILogger<ShiftChainService> _logger;
 
-    public ShiftChainService(IETransferProxyService eTransferProxyService,
+    public ShiftChainService(
+        // IETransferProxyService eTransferProxyService,
         IOptionsSnapshot<ChainOptions> chainOptions, ITokenAppService tokenAppService,
         IHttpClientService httpClientService,
         IOptionsSnapshot<ETransferOptions> eTransferOptions, INetworkCacheProvider networkCacheProvider,
         ITransferAppService transferAppService,
         ILogger<ShiftChainService> logger)
     {
-        _eTransferProxyService = eTransferProxyService;
+        // _eTransferProxyService = eTransferProxyService;
         _chainOptions = chainOptions.Value;
         _tokenAppService = tokenAppService;
         _httpClientService = httpClientService;
@@ -54,7 +55,7 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
         var networkMap = new Dictionary<string, NetworkInfoDto>();
         var sendEBridgeMap = new Dictionary<string, SendNetworkDto>();
 
-        await SetReceiveByETransfer(receiveNetworkMap, networkMap);
+        // await SetReceiveByETransfer(receiveNetworkMap, networkMap);
 
         var limiter = await SetReceiveByEBridge(receiveNetworkMap, networkMap);
         SetSendByEBridge(sendEBridgeMap, networkMap, limiter);
@@ -125,7 +126,7 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
             result.NetworkList.Add(_networkCacheProvider.GetNetwork(request.ChainId));
         }
 
-        await SetSendByETransfer(result, request);
+        // await SetSendByETransfer(result, request);
 
         await SetSendByEBridgeAsync(result, request);
         var notAvailableSendNetworks = _eTransferOptions.NotAvailableSendNetworks;
@@ -190,121 +191,121 @@ public class ShiftChainService : EoaServerBaseService, IShiftChainService
         }
     }
 
-    private async Task SetSendByETransfer(SendNetworkDto result, GetSendNetworkListRequestDto request)
-    {
-        // set etransfer
-        string formatAddress = ShiftChainHelper.ExtractAddress(request.ToAddress);
-        ResponseWrapDto<GetNetworkListDto> etransfer = null;
-        try
-        {
-            etransfer = await _eTransferProxyService.GetNetworkListAsync(new GetNetworkListRequestDto
-            {
-                Type = "Withdraw", Symbol = request.Symbol, ChainId = request.ChainId, Address = formatAddress
-            });
-        }
-        catch (Exception e)
-        {
-            return;
-        }
+    // private async Task SetSendByETransfer(SendNetworkDto result, GetSendNetworkListRequestDto request)
+    // {
+    //     // set etransfer
+    //     string formatAddress = ShiftChainHelper.ExtractAddress(request.ToAddress);
+    //     ResponseWrapDto<GetNetworkListDto> etransfer = null;
+    //     try
+    //     {
+    //         etransfer = await _eTransferProxyService.GetNetworkListAsync(new GetNetworkListRequestDto
+    //         {
+    //             Type = "Withdraw", Symbol = request.Symbol, ChainId = request.ChainId, Address = formatAddress
+    //         });
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         return;
+    //     }
+    //
+    //     if (etransfer?.Data?.NetworkList?.Count != 0)
+    //     {
+    //         var price = await _tokenAppService.GetTokenPriceListAsync(new List<string> { request.Symbol });
+    //         var maxAmount = ShiftChainHelper.GetMaxAmount(price.Items[0].PriceInUsd);
+    //         foreach (var networkDto in etransfer.Data.NetworkList)
+    //         {
+    //             result.NetworkList.Add(new NetworkInfoDto
+    //             {
+    //                 Name = networkDto.Name,
+    //                 Network = networkDto.Network,
+    //                 ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
+    //                 ServiceList = new List<ServiceDto>
+    //                 {
+    //                     new ServiceDto
+    //                     {
+    //                         ServiceName = ShiftChainHelper.ETransferTool,
+    //                         MultiConfirmTime = networkDto.MultiConfirmTime,
+    //                         MaxAmount = maxAmount
+    //                     }
+    //                 }
+    //             });
+    //         }
+    //     }
+    // }
 
-        if (etransfer?.Data?.NetworkList?.Count != 0)
-        {
-            var price = await _tokenAppService.GetTokenPriceListAsync(new List<string> { request.Symbol });
-            var maxAmount = ShiftChainHelper.GetMaxAmount(price.Items[0].PriceInUsd);
-            foreach (var networkDto in etransfer.Data.NetworkList)
-            {
-                result.NetworkList.Add(new NetworkInfoDto
-                {
-                    Name = networkDto.Name,
-                    Network = networkDto.Network,
-                    ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
-                    ServiceList = new List<ServiceDto>
-                    {
-                        new ServiceDto
-                        {
-                            ServiceName = ShiftChainHelper.ETransferTool,
-                            MultiConfirmTime = networkDto.MultiConfirmTime,
-                            MaxAmount = maxAmount
-                        }
-                    }
-                });
-            }
-        }
-    }
 
-
-    private async Task SetReceiveByETransfer(Dictionary<string, ReceiveNetworkDto> receiveNetworkMap,
-        Dictionary<string, NetworkInfoDto> networkMap)
-    {
-        string type = "Deposit";
-        var optionList =
-            await _transferAppService.GetTokenOptionListAsync(new GetTokenOptionListRequestDto { Type = type });
-        foreach (var token in optionList.Data.TokenList)
-        {
-            var toToken = token.ToTokenList.FirstOrDefault(p => p.Symbol.Equals(token.Symbol));
-            if (toToken == null)
-            {
-                continue;
-            }
-
-            string symbol = token.Symbol;
-            ReceiveNetworkDto receiveNetwork = InitAelfChain(symbol);
-            receiveNetworkMap[symbol] = receiveNetwork;
-            var price = await _tokenAppService.GetTokenPriceListAsync(new List<string> { symbol });
-            _logger.LogInformation("setReceiveByETransfer symbol = {0} price = {1}", symbol,
-                JsonConvert.SerializeObject(price));
-            var maxAmount = ShiftChainHelper.GetMaxAmount(price.Items[0].PriceInUsd);
-            foreach (var chainId in toToken.ChainIdList)
-            {
-                var networkList = await _eTransferProxyService.GetNetworkListAsync(new GetNetworkListRequestDto
-                {
-                    Type = type, Symbol = token.Symbol, ChainId = chainId,
-                });
-                foreach (var networkDto in networkList.Data.NetworkList)
-                {
-                    var networks = receiveNetwork.DestinationMap[chainId];
-                    var network = networks.FirstOrDefault(n => n.Network == networkDto.Network);
-                    if(network == null)
-                    {
-                        receiveNetwork.DestinationMap[chainId].Add(new NetworkInfoDto
-                            {
-                                Network = networkDto.Network,
-                                Name = networkDto.Name,
-                                ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
-                                ServiceList = new List<ServiceDto>
-                                {
-                                    new ServiceDto
-                                    {
-                                        ServiceName = ShiftChainHelper.ETransferTool,
-                                        MultiConfirmTime = networkDto.MultiConfirmTime,
-                                        MaxAmount = maxAmount
-                                    }
-                                }
-                            }
-                        );
-                    }
-                    else
-                    {
-                        network.ServiceList = new List<ServiceDto>
-                        {
-                            new ServiceDto
-                            {
-                                ServiceName = ShiftChainHelper.ETransferTool,
-                                MultiConfirmTime = networkDto.MultiConfirmTime,
-                                MaxAmount = maxAmount
-                            }
-                        };
-                    }
-                    networkMap[networkDto.Network] = new NetworkInfoDto
-                    {
-                        Network = networkDto.Network,
-                        Name = networkDto.Name,
-                        ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
-                    };
-                }
-            }
-        }
-    }
+    // private async Task SetReceiveByETransfer(Dictionary<string, ReceiveNetworkDto> receiveNetworkMap,
+    //     Dictionary<string, NetworkInfoDto> networkMap)
+    // {
+    //     string type = "Deposit";
+    //     var optionList =
+    //         await _transferAppService.GetTokenOptionListAsync(new GetTokenOptionListRequestDto { Type = type });
+    //     foreach (var token in optionList.Data.TokenList)
+    //     {
+    //         var toToken = token.ToTokenList.FirstOrDefault(p => p.Symbol.Equals(token.Symbol));
+    //         if (toToken == null)
+    //         {
+    //             continue;
+    //         }
+    //
+    //         string symbol = token.Symbol;
+    //         ReceiveNetworkDto receiveNetwork = InitAelfChain(symbol);
+    //         receiveNetworkMap[symbol] = receiveNetwork;
+    //         var price = await _tokenAppService.GetTokenPriceListAsync(new List<string> { symbol });
+    //         _logger.LogInformation("setReceiveByETransfer symbol = {0} price = {1}", symbol,
+    //             JsonConvert.SerializeObject(price));
+    //         var maxAmount = ShiftChainHelper.GetMaxAmount(price.Items[0].PriceInUsd);
+    //         foreach (var chainId in toToken.ChainIdList)
+    //         {
+    //             var networkList = await _eTransferProxyService.GetNetworkListAsync(new GetNetworkListRequestDto
+    //             {
+    //                 Type = type, Symbol = token.Symbol, ChainId = chainId,
+    //             });
+    //             foreach (var networkDto in networkList.Data.NetworkList)
+    //             {
+    //                 var networks = receiveNetwork.DestinationMap[chainId];
+    //                 var network = networks.FirstOrDefault(n => n.Network == networkDto.Network);
+    //                 if(network == null)
+    //                 {
+    //                     receiveNetwork.DestinationMap[chainId].Add(new NetworkInfoDto
+    //                         {
+    //                             Network = networkDto.Network,
+    //                             Name = networkDto.Name,
+    //                             ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
+    //                             ServiceList = new List<ServiceDto>
+    //                             {
+    //                                 new ServiceDto
+    //                                 {
+    //                                     ServiceName = ShiftChainHelper.ETransferTool,
+    //                                     MultiConfirmTime = networkDto.MultiConfirmTime,
+    //                                     MaxAmount = maxAmount
+    //                                 }
+    //                             }
+    //                         }
+    //                     );
+    //                 }
+    //                 else
+    //                 {
+    //                     network.ServiceList = new List<ServiceDto>
+    //                     {
+    //                         new ServiceDto
+    //                         {
+    //                             ServiceName = ShiftChainHelper.ETransferTool,
+    //                             MultiConfirmTime = networkDto.MultiConfirmTime,
+    //                             MaxAmount = maxAmount
+    //                         }
+    //                     };
+    //                 }
+    //                 networkMap[networkDto.Network] = new NetworkInfoDto
+    //                 {
+    //                     Network = networkDto.Network,
+    //                     Name = networkDto.Name,
+    //                     ImageUrl = ShiftChainHelper.GetChainImage(networkDto.Network),
+    //                 };
+    //             }
+    //         }
+    //     }
+    // }
 
     private async Task<EBridgeLimiterDto> SetReceiveByEBridge(Dictionary<string, ReceiveNetworkDto> receiveNetworkMap,
         Dictionary<string, NetworkInfoDto> networkMap)
